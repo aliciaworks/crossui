@@ -1,0 +1,13 @@
+[package]
+name = "crossui-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+crossui-core = { path = "../crossui-core" }
+crossui-login-app = { path = "../../examples/login-app" }
+serde_json.workspace = true

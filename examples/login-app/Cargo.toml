@@ -1,0 +1,14 @@
+[package]
+name = "crossui-login-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "crossui_login_app"
+
+[dependencies]
+crossui-core = { path = "../../crates/crossui-core" }
+crossui-dsl = { path = "../../crates/crossui-dsl" }
+crossui-ir = { path = "../../crates/crossui-ir" }
+serde.workspace = true
