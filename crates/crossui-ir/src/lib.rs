@@ -243,7 +243,9 @@ pub fn diff(previous: &UiDocument, next: &UiDocument) -> Vec<DiffOp> {
     for (key, before) in &old {
         match new.get(key) {
             None => ops.push(DiffOp::Remove { key: key.clone() }),
-            Some(after) if *before != *after => ops.push(DiffOp::Update { key: key.clone() }),
+            Some(after) if node_fields_changed(before, after) => {
+                ops.push(DiffOp::Update { key: key.clone() })
+            }
             _ => {}
         }
     }
@@ -252,8 +254,25 @@ pub fn diff(previous: &UiDocument, next: &UiDocument) -> Vec<DiffOp> {
             ops.push(DiffOp::Insert { key: key.clone() });
         }
     }
+    if previous.theme != next.theme
+        && !ops
+            .iter()
+            .any(|op| matches!(op, DiffOp::Update { key } if key == &next.root.key))
+    {
+        ops.push(DiffOp::Update {
+            key: next.root.key.clone(),
+        });
+    }
     ops
 }
+
+/// Child insertions, removals, and updates are represented by their own keyed
+/// operations. Comparing children here would make every ancestor look changed
+/// and prevent native hosts from applying a focused leaf update in place.
+fn node_fields_changed(before: &Node, after: &Node) -> bool {
+    before.key != after.key || before.kind != after.kind || before.semantics != after.semantics
+}
+
 fn flatten<'a>(node: &'a Node, nodes: &mut BTreeMap<NodeKey, &'a Node>) {
     nodes.insert(node.key.clone(), node);
     for child in &node.children {
@@ -318,5 +337,58 @@ mod tests {
     #[test]
     fn semantics_are_enabled_by_default() {
         assert!(Semantics::default().enabled);
+    }
+    #[test]
+    fn rejects_unknown_document_version() {
+        let json = r#"{"version":2,"root":{"key":"root","type":"form","semantics":{"enabled":true},"children":[]}}"#;
+        assert!(matches!(
+            UiDocument::from_json(json),
+            Err(DocumentError::Validation(
+                ValidationError::UnsupportedVersion(2)
+            ))
+        ));
+    }
+    #[test]
+    fn child_update_does_not_invalidate_unchanged_ancestors() {
+        let old =
+            UiDocument::new(
+                Node::new("root", NodeKind::Form {}).with_children(vec![Node::new(
+                    "value",
+                    NodeKind::Text {
+                        text: "A".into(),
+                        style: TextStyle::Body,
+                    },
+                )]),
+            );
+        let new =
+            UiDocument::new(
+                Node::new("root", NodeKind::Form {}).with_children(vec![Node::new(
+                    "value",
+                    NodeKind::Text {
+                        text: "B".into(),
+                        style: TextStyle::Body,
+                    },
+                )]),
+            );
+        assert_eq!(
+            diff(&old, &new),
+            vec![DiffOp::Update {
+                key: NodeKey("value".into())
+            }]
+        );
+    }
+    #[test]
+    fn theme_change_invalidates_the_root() {
+        let old = UiDocument::new(Node::new("root", NodeKind::Form {}));
+        let mut new = old.clone();
+        new.theme
+            .tokens
+            .insert("primary".into(), TokenValue::Color("#112233".into()));
+        assert_eq!(
+            diff(&old, &new),
+            vec![DiffOp::Update {
+                key: NodeKey("root".into())
+            }]
+        );
     }
 }

@@ -1,5 +1,6 @@
 use crossui_core::{Reducer, Store};
 use crossui_dsl::{Accessible, SemanticRole, button, input, route, text, title, vstack};
+use crossui_export::{ExportTarget, export};
 use crossui_ir::{Theme, TokenValue, UiDocument};
 use std::collections::BTreeMap;
 
@@ -63,8 +64,20 @@ fn main() {
     });
     store.dispatch(Action::EmailChanged("ada@example.com".into()));
     store.dispatch(Action::Submit);
-    println!(
-        "{}",
-        store.document().to_json().expect("serializable document")
-    );
+    let output = match std::env::args().nth(1).as_deref() {
+        Some("swiftui") => {
+            export(store.document(), ExportTarget::SwiftUi).expect("exportable document")
+        }
+        Some("compose") => {
+            export(store.document(), ExportTarget::JetpackCompose).expect("exportable document")
+        }
+        Some("winui3") => {
+            export(store.document(), ExportTarget::WinUi3).expect("exportable document")
+        }
+        Some(target) => {
+            panic!("unsupported export target: {target}; use swiftui, compose, or winui3")
+        }
+        None => store.document().to_json().expect("serializable document"),
+    };
+    println!("{output}");
 }

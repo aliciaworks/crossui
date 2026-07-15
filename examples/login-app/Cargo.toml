@@ -12,3 +12,7 @@ crossui-core = { path = "../../crates/crossui-core" }
 crossui-dsl = { path = "../../crates/crossui-dsl" }
 crossui-ir = { path = "../../crates/crossui-ir" }
 serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+crossui-testing = { path = "../../crates/crossui-testing" }

@@ -22,8 +22,8 @@ fn dispatch_json(event_json: &str) -> Result<String, String> {
         .lock()
         .map_err(|_| "CrossUI application lock was poisoned".to_string())?;
     app.dispatch_json(event_json)
-        .map_err(|error| error.to_string())?;
-    app.document().to_json().map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())
+        .and_then(|update| serde_json::to_string(&update).map_err(|error| error.to_string()))
 }
 
 fn java_string(env: &mut JNIEnv<'_>, value: Result<String, String>) -> jstring {

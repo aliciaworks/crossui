@@ -8,3 +8,4 @@ publish = false
 crossui-ir = { path = "../../crates/crossui-ir" }
 crossui-dsl = { path = "../../crates/crossui-dsl" }
 crossui-core = { path = "../../crates/crossui-core" }
+crossui-export = { path = "../../crates/crossui-export" }

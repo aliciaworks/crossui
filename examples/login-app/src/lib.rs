@@ -4,7 +4,7 @@ use crossui_dsl::{
     vstack,
 };
 use crossui_ir::{AndroidTheme, Theme, TokenValue, UiDocument};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 pub fn create_app() -> Box<dyn Application> {
@@ -35,9 +35,15 @@ enum LoginAction {
     Back,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum LoginEffect {
+    Notification { message: String },
+}
+
 impl Reducer for Login {
     type Action = LoginAction;
-    type Effect = String;
+    type Effect = LoginEffect;
 
     fn reduce(&mut self, action: Self::Action) -> Vec<Self::Effect> {
         match action {
@@ -48,7 +54,9 @@ impl Reducer for Login {
             }
             LoginAction::Submit if self.email.contains('@') => {
                 self.screen = Screen::Projects;
-                vec!["login.submit".into()]
+                vec![LoginEffect::Notification {
+                    message: "Signed in successfully".into(),
+                }]
             }
             LoginAction::Submit => {
                 self.message = Some("Enter a valid email address".into());
@@ -140,6 +148,18 @@ impl Reducer for Login {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crossui_testing::{assert_effect, assert_leaf_update};
+
+    #[test]
+    fn editing_an_input_returns_a_leaf_only_patch() {
+        let mut app = create_app();
+        let update = app
+            .dispatch_json(
+                r#"{"node_key":"email","action":{"type":"email_changed","value":"ada@example.com"}}"#,
+            )
+            .unwrap();
+        assert_leaf_update(&update, "email");
+    }
 
     #[test]
     fn successful_login_navigates_to_projects() {
@@ -148,20 +168,26 @@ mod tests {
             r#"{"node_key":"email","action":{"type":"email_changed","value":"ada@example.com"}}"#,
         )
         .unwrap();
-        app.dispatch_json(r#"{"node_key":"submit","action":{"type":"submit"}}"#)
+        let update = app
+            .dispatch_json(r#"{"node_key":"submit","action":{"type":"submit"}}"#)
             .unwrap();
         assert!(
-            app.document()
+            update
+                .document
                 .to_json()
                 .unwrap()
                 .contains("\"active\": \"projects\"")
+        );
+        assert_effect(
+            &update,
+            serde_json::json!({"type": "notification", "message": "Signed in successfully"}),
         );
     }
 
     #[test]
     fn selecting_a_project_navigates_to_detail() {
         let mut app = create_app();
-        app.dispatch_json(r#"{"node_key":"projects-list","action":{"type":"project_selected","value":"project-alpha"}}"#).unwrap();
-        assert!(app.document().to_json().unwrap().contains("Project alpha"));
+        let update = app.dispatch_json(r#"{"node_key":"projects-list","action":{"type":"project_selected","value":"project-alpha"}}"#).unwrap();
+        assert!(update.document.to_json().unwrap().contains("Project alpha"));
     }
 }

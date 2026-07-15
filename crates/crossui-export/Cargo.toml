@@ -1,10 +1,10 @@
 [package]
-name = "crossui-testing"
+name = "crossui-export"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
 crossui-ir = { path = "../crossui-ir" }
-crossui-core = { path = "../crossui-core" }
+thiserror.workspace = true
 serde_json.workspace = true

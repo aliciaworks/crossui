@@ -55,6 +55,16 @@ name = "crossui-dsl"
 version = "0.1.0"
 dependencies = [
  "crossui-ir",
+ "serde_json",
+]
+
+[[package]]
+name = "crossui-export"
+version = "0.1.0"
+dependencies = [
+ "crossui-ir",
+ "serde_json",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -82,14 +92,18 @@ dependencies = [
  "crossui-core",
  "crossui-dsl",
  "crossui-ir",
+ "crossui-testing",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
 name = "crossui-testing"
 version = "0.1.0"
 dependencies = [
+ "crossui-core",
  "crossui-ir",
+ "serde_json",
 ]
 
 [[package]]
@@ -230,6 +244,7 @@ version = "0.1.0"
 dependencies = [
  "crossui-core",
  "crossui-dsl",
+ "crossui-export",
  "crossui-ir",
 ]
 
