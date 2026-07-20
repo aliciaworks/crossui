@@ -6,8 +6,19 @@ use jni::{
 };
 use std::sync::{LazyLock, Mutex};
 
-static APP: LazyLock<Mutex<Box<dyn Application>>> =
-    LazyLock::new(|| Mutex::new(crossui_login_app::create_app()));
+/// Replace this with your own `create_app` when building with
+/// `--no-default-features` and your own feature.
+#[cfg(feature = "login-app")]
+fn create_app() -> Box<dyn Application> {
+    crossui_login_app::create_app()
+}
+
+#[cfg(not(feature = "login-app"))]
+fn create_app() -> Box<dyn Application> {
+    compile_error!("no application feature enabled; enable 'login-app' or provide your own")
+}
+
+static APP: LazyLock<Mutex<Box<dyn Application>>> = LazyLock::new(|| Mutex::new(create_app()));
 
 fn document_json() -> Result<String, String> {
     APP.lock()

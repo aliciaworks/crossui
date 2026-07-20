@@ -1,0 +1,47 @@
+name: CrossUI CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test (Rust stable)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build all targets
+        run: cargo build --workspace
+
+      - name: Run all tests
+        run: cargo test --workspace
+
+      - name: Verify showcase produces valid JSON
+        run: |
+          cargo run -p showcase > /tmp/crossui-out.json
+          python3 -c "import json; json.load(open('/tmp/crossui-out.json')); print('JSON valid')"
+
+  lint:
+    name: Lint (clippy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Clippy check
+        run: cargo clippy --workspace -- -D warnings

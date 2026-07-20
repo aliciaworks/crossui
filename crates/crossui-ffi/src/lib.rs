@@ -4,8 +4,22 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
-static APP: LazyLock<Mutex<Box<dyn Application>>> =
-    LazyLock::new(|| Mutex::new(crossui_login_app::create_app()));
+/// Replace this with your own `create_app` when building with
+/// `--no-default-features --features custom-app` or by patching the
+/// active feature.
+#[cfg(feature = "login-app")]
+fn create_app() -> Box<dyn Application> {
+    crossui_login_app::create_app()
+}
+
+/// Stub factory when no application feature is active. The native host
+/// must register an application before calling any FFI entry point.
+#[cfg(not(feature = "login-app"))]
+fn create_app() -> Box<dyn Application> {
+    compile_error!("no application feature enabled; enable 'login-app' or provide your own")
+}
+
+static APP: LazyLock<Mutex<Box<dyn Application>>> = LazyLock::new(|| Mutex::new(create_app()));
 
 fn response(value: Result<String, String>) -> *mut c_char {
     let json = value.unwrap_or_else(|error| {

@@ -3,7 +3,7 @@ use crossui_dsl::{
     Accessible, SemanticRole, button, form, input, navigation, route, selectable_list, text, title,
     vstack,
 };
-use crossui_ir::{AndroidTheme, Theme, TokenValue, UiDocument};
+use crossui_ir::{ColorScheme, Theme, TokenValue, UiDocument};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -132,11 +132,12 @@ impl Reducer for Login {
             ],
         ));
         document.theme = Theme {
+            color_scheme: ColorScheme::System,
             tokens: BTreeMap::from([
                 ("primary".into(), TokenValue::Color("#6750A4".into())),
-                ("spacing.md".into(), TokenValue::Number(16)),
+                ("spacing.md".into(), TokenValue::Number(16.0)),
             ]),
-            android: AndroidTheme {
+            android: crossui_ir::AndroidTheme {
                 material3_expressive: true,
                 dynamic_color: true,
             },
