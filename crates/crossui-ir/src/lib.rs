@@ -1,15 +1,26 @@
 //! Versioned, portable UI document shared by Rust and native hosts.
 //!
-//! # HIG alignment
+//! # Architecture
 //!
-//! Each IR version targets a minimum component set that all three platform
-//! HIGs (Apple HIG, Material Design 3, WinUI 3 / Fluent) can render natively
-//! or with a documented adaptation. Versions are pinned so hosts reject
-//! unknown IR before decoding.
+//! ```text
+//! Authored Semantic IR  ──►  Resolved Semantic IR  ──►  Host Renderer
+//!        │                          │
+//!   traits + facts          derived semantics
+//!   + extensions             + policy resolutions
+//! ```
+//!
+//! Platform extensions are namespaced, strongly-typed hints scoped to
+//! exactly one platform identity.  Extensions on the wrong target
+//! profile are rejected by default (not silently ignored).
+
+pub mod extensions;
+pub mod profile;
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
+
+use crate::extensions::PlatformExtension;
 
 pub const IR_VERSION: u32 = 2;
 
@@ -127,6 +138,12 @@ impl From<&str> for NodeKey {
     }
 }
 
+impl From<String> for NodeKey {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Node {
     pub key: NodeKey,
@@ -136,6 +153,9 @@ pub struct Node {
     pub semantics: Semantics,
     #[serde(default)]
     pub children: Vec<Node>,
+    /// Platform-specific hints.  Empty for portable nodes.
+    #[serde(default)]
+    pub extensions: Vec<PlatformExtension>,
 }
 
 impl Node {
@@ -145,6 +165,7 @@ impl Node {
             kind,
             semantics: Semantics::default(),
             children: vec![],
+            extensions: vec![],
         }
     }
     pub fn with_children(mut self, children: Vec<Node>) -> Self {
@@ -445,6 +466,28 @@ pub enum Platform {
 }
 
 // ---------------------------------------------------------------------------
+// Semantic traits – product facts, not derived rules
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ActionFrequency {
+    Rare,
+    Occasional,
+    #[default]
+    Frequent,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum Importance {
+    #[default]
+    Normal,
+    High,
+    Critical,
+}
+
+// ---------------------------------------------------------------------------
 // Semantics
 // ---------------------------------------------------------------------------
 
@@ -458,6 +501,25 @@ pub struct Semantics {
     pub role: Option<SemanticRole>,
     #[serde(default = "return_true")]
     pub enabled: bool,
+    /// Product facts – used by the legalizer to derive policies.
+    #[serde(default)]
+    pub traits: SemanticTraits,
+}
+
+/// Product-level facts stored by the author.  The legalizer / lowering
+/// pipeline derives UI policies (confirmation, animation, etc.) from
+/// these facts.  Do not store derived results here.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct SemanticTraits {
+    /// The action cannot be undone.
+    #[serde(default)]
+    pub irreversible: bool,
+    /// How often this action is performed.
+    #[serde(default)]
+    pub frequency: ActionFrequency,
+    /// Visual / functional importance.
+    #[serde(default)]
+    pub importance: Importance,
 }
 
 impl Default for Semantics {
@@ -467,6 +529,7 @@ impl Default for Semantics {
             hint: None,
             role: None,
             enabled: true,
+            traits: SemanticTraits::default(),
         }
     }
 }

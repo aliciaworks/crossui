@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace CrossUi.Windows;
@@ -95,7 +96,36 @@ internal static class CrossUiRenderer
         };
         if (element is FrameworkElement frameworkElement)
             frameworkElement.Tag = node.GetProperty("key").GetString();
+        // Apply Windows platform extensions.
+        ApplyWindowsExtensions(element, node);
         return element;
+    }
+
+    private static void ApplyWindowsExtensions(UIElement element, JsonElement node)
+    {
+        if (!node.TryGetProperty("extensions", out var exts) || exts.ValueKind != JsonValueKind.Array)
+            return;
+        foreach (var ext in exts.EnumerateArray())
+        {
+            var platform = ext.GetProperty("platform").GetString();
+            if (platform != "windows") continue;
+            var data = ext.GetProperty("data");
+            var type = data.GetProperty("type").GetString();
+            switch (type)
+            {
+                case "corner_preference":
+                    if (element is Control control && data.TryGetProperty("radius", out var radiusEl))
+                        control.CornerRadius = new CornerRadius(radiusEl.GetSingle());
+                    else if (element is Border border && data.TryGetProperty("radius", out var borderRadius))
+                        border.CornerRadius = new CornerRadius(borderRadius.GetSingle());
+                    break;
+                case "connected_animation":
+                    if (element is FrameworkElement fe && data.TryGetProperty("key", out var animKey))
+                        ConnectedAnimationService.GetForCurrentView().PrepareToAnimate(
+                            animKey.GetString()!, fe);
+                    break;
+            }
+        }
     }
 
     // ---- Navigation (Tab vs Stack) ------------------------------------------

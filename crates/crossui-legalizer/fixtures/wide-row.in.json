@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "root": {
+    "key": "wide-row",
+    "type": "stack",
+    "axis": "horizontal",
+    "alignment": "center",
+    "children": [
+      { "key": "a", "type": "text", "text": "A", "style": "body", "semantics": { "enabled": true } },
+      { "key": "b", "type": "text", "text": "B", "style": "body", "semantics": { "enabled": true } },
+      { "key": "c", "type": "text", "text": "C", "style": "body", "semantics": { "enabled": true } },
+      { "key": "d", "type": "text", "text": "D", "style": "body", "semantics": { "enabled": true } },
+      { "key": "e", "type": "text", "text": "E", "style": "body", "semantics": { "enabled": true } }
+    ],
+    "semantics": { "enabled": true }
+  },
+  "theme": {}
+}

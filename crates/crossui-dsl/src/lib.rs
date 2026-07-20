@@ -4,8 +4,9 @@
 //! to construct IR by hand — use these functions (or the `ui!` macro) instead.
 
 pub use crossui_ir::{
-    Alignment, Axis, ButtonVariant, ChipVariant, DatePickerMode, InputType, NavigationMode, Node,
-    NodeKind, PickerOption, Platform, ReturnKey, SemanticRole, TextStyle,
+    ActionFrequency, Alignment, Axis, ButtonVariant, ChipVariant, DatePickerMode, Importance,
+    InputType, NavigationMode, Node, NodeKind, PickerOption, Platform, ReturnKey, SemanticRole,
+    SemanticTraits, TextStyle,
 };
 
 // -- Text ---------------------------------------------------------------
@@ -552,6 +553,9 @@ pub fn filter_chip(
 pub trait Accessible: Sized {
     fn accessibility(self, label: impl Into<String>, role: SemanticRole) -> Self;
     fn disabled(self) -> Self;
+    fn irreversible(self) -> Self;
+    fn frequent(self) -> Self;
+    fn critical(self) -> Self;
 }
 
 impl Accessible for Node {
@@ -563,6 +567,21 @@ impl Accessible for Node {
 
     fn disabled(mut self) -> Self {
         self.semantics.enabled = false;
+        self
+    }
+
+    fn irreversible(mut self) -> Self {
+        self.semantics.traits.irreversible = true;
+        self
+    }
+
+    fn frequent(mut self) -> Self {
+        self.semantics.traits.frequency = ActionFrequency::Frequent;
+        self
+    }
+
+    fn critical(mut self) -> Self {
+        self.semantics.traits.importance = Importance::Critical;
         self
     }
 }

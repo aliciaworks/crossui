@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 protocol CrossUiDocumentProvider {
     func initialDocument() throws -> String
@@ -110,20 +111,58 @@ struct CrossUiUpdate {
             let documentData = try JSONSerialization.data(withJSONObject: update)
             let document = try JSONDecoder().decode(CrossUiDocument.self, from: documentData)
             guard document.version == CrossUiDocument.supportedVersion else { throw CrossUiDocumentError.unsupportedVersion(document.version) }
+            // Walk raw JSON tree to populate extensions on decoded nodes.
+            if let rootRaw = update as? [String: Any] {
+                populateExtensions(node: document.root, raw: rootRaw)
+            }
             let effects = (response?["effects"] as? [[String: Any]] ?? []).map { CrossUiEffect(type: $0["type"] as? String ?? "", message: $0["message"] as? String) }
             return CrossUiUpdate(document: document, effects: effects)
         }
         let document = try JSONDecoder().decode(CrossUiDocument.self, from: data)
         guard document.version == CrossUiDocument.supportedVersion else { throw CrossUiDocumentError.unsupportedVersion(document.version) }
+        // Walk raw JSON root to populate extensions.
+        if let rootRaw = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            populateExtensions(node: document.root, raw: rootRaw)
+        }
         return CrossUiUpdate(document: document, effects: [])
+    }
+
+    /// Recursively walk the raw JSON and decoded node tree in parallel,
+    /// extracting ``extensions`` arrays and assigning them to the matching node.
+    private static func populateExtensions(node: CrossUiNode, raw: [String: Any]) {
+        if let rawExts = raw["extensions"] as? [[String: Any]] {
+            node.extensions = CrossUiExtension.parseList(rawExts)
+        }
+        guard let rawChildren = raw["children"] as? [[String: Any]],
+              node.children.count == rawChildren.count else { return }
+        for (child, rawChild) in zip(node.children, rawChildren) {
+            populateExtensions(node: child, raw: rawChild)
+        }
     }
 }
 
 private enum CrossUiDocumentError: Error { case unsupportedVersion(Int) }
 
-// MARK: - CrossUiNode (expanded for v2.1)
+// MARK: - Platform extensions (parsed from raw JSON)
 
-struct CrossUiNode: Decodable, Identifiable {
+struct CrossUiExtension {
+    let platform: String
+    let type: String
+    let fields: [String: Any]
+
+    static func parseList(_ raw: [[String: Any]]) -> [CrossUiExtension] {
+        raw.compactMap { dict in
+            guard let platform = dict["platform"] as? String,
+                  let data = dict["data"] as? [String: Any],
+                  let type = data["type"] as? String else { return nil }
+            return CrossUiExtension(platform: platform, type: type, fields: data)
+        }
+    }
+}
+
+// MARK: - CrossUiNode (expanded for v2.2)
+
+class CrossUiNode: Decodable, Identifiable {
     let key: String
     let type: String
     let text: String?
@@ -164,8 +203,39 @@ struct CrossUiNode: Decodable, Identifiable {
     let semantics: CrossUiSemantics
     let enabled: Bool
     let children: [CrossUiNode]
+    var extensions: [CrossUiExtension]
 
     var id: String { key }
+
+    // Explicit memberwise init required for class (struct gets it automatically).
+    init(key: String, type: String, text: String?, style: String?, title: String?,
+         label: String?, value: String?, action: String?, variant: String?,
+         onChange: String?, onSelect: String?, active: String?, axis: String?,
+         alignment: String?, spacing: String?, platform: String?, name: String?,
+         payload: CrossUiJsonValue?, placeholder: String?, secure: Bool,
+         inputType: String?, returnKey: String?, src: String?, alt: String?,
+         checked: Bool, confirmLabel: String?, confirmAction: String?,
+         cancelLabel: String?, cancelAction: String?, mode: String?,
+         respectSafeArea: Bool, min: Double?, max: Double?, step: Double?,
+         options: [CrossUiPickerOption]?, selected: String?, dateMode: String?,
+         semantics: CrossUiSemantics, enabled: Bool, children: [CrossUiNode],
+         extensions: [CrossUiExtension] = []) {
+        self.key = key; self.type = type; self.text = text; self.style = style
+        self.title = title; self.label = label; self.value = value
+        self.action = action; self.variant = variant; self.onChange = onChange
+        self.onSelect = onSelect; self.active = active; self.axis = axis
+        self.alignment = alignment; self.spacing = spacing; self.platform = platform
+        self.name = name; self.payload = payload; self.placeholder = placeholder
+        self.secure = secure; self.inputType = inputType; self.returnKey = returnKey
+        self.src = src; self.alt = alt; self.checked = checked
+        self.confirmLabel = confirmLabel; self.confirmAction = confirmAction
+        self.cancelLabel = cancelLabel; self.cancelAction = cancelAction
+        self.mode = mode; self.respectSafeArea = respectSafeArea
+        self.min = min; self.max = max; self.step = step
+        self.options = options; self.selected = selected; self.dateMode = dateMode
+        self.semantics = semantics; self.enabled = enabled
+        self.children = children; self.extensions = extensions
+    }
 
     enum CodingKeys: String, CodingKey {
         case key, type, text, style, title, label, value, action, variant, active, children, semantics, placeholder, secure, axis, alignment, spacing, platform, name, payload, src, alt, checked, mode, min, max, step, options, selected
@@ -181,7 +251,7 @@ struct CrossUiNode: Decodable, Identifiable {
         case dateMode = "mode"
     }
 
-    init(from decoder: Decoder) throws {
+    required init(from decoder: Decoder) throws {
         let vals = try decoder.container(keyedBy: CodingKeys.self)
         key = try vals.decode(String.self, forKey: .key)
         type = try vals.decode(String.self, forKey: .type)
@@ -223,6 +293,7 @@ struct CrossUiNode: Decodable, Identifiable {
         children = try vals.decodeIfPresent([CrossUiNode].self, forKey: .children) ?? []
         semantics = try vals.decodeIfPresent(CrossUiSemantics.self, forKey: .semantics) ?? CrossUiSemantics()
         enabled = semantics.enabled ?? true
+        extensions = []  // filled later from raw JSON during CrossUiUpdate.decode
     }
 }
 
@@ -283,9 +354,35 @@ struct CrossUiHost: View {
     }
 
     private func dispatch(_ event: String) {
+        // Trigger haptic feedback before dispatching if the node has the extension.
+        triggerHaptic(for: event)
         guard let json = try? provider.dispatchEvent(event), let update = try? CrossUiUpdate.decode(json) else { return }
         document = update.document
         notification = update.effects.first(where: { $0.type == "notification" })?.message
+    }
+
+    private func triggerHaptic(for event: String) {
+        guard let data = event.data(using: .utf8),
+              let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let nodeKey = payload["node_key"] as? String else { return }
+        let node = findNode(key: nodeKey, in: document.root)
+        guard let haptic = node?.iosExtension("haptic_feedback"),
+              let feedbackType = haptic.fields["feedback_type"] as? String else { return }
+        let style: UIImpactFeedbackGenerator.FeedbackStyle = switch feedbackType {
+            case "light": .light; case "medium": .medium; case "heavy": .heavy
+            case "success", "warning", "error": .medium
+            default: .light
+        }
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.impactOccurred()
+    }
+
+    private func findNode(key: String, in node: CrossUiNode) -> CrossUiNode? {
+        if node.key == key { return node }
+        for child in node.children {
+            if let found = findNode(key: key, in: child) { return found }
+        }
+        return nil
     }
 }
 
@@ -297,7 +394,13 @@ private extension CrossUiNode {
         secure: false, inputType: nil, returnKey: nil, src: nil, alt: nil, checked: false,
         confirmLabel: nil, confirmAction: nil, cancelLabel: nil, cancelAction: nil,
         mode: nil, respectSafeArea: true, min: nil, max: nil, step: nil, options: nil,
-        selected: nil, dateMode: nil, semantics: CrossUiSemantics(), enabled: true, children: [])
+        selected: nil, dateMode: nil, semantics: CrossUiSemantics(), enabled: true,
+        children: [], extensions: [])
+
+    /// Returns the first iOS extension of a given type, if present.
+    func iosExtension(_ type: String) -> CrossUiExtension? {
+        extensions.first { $0.platform == "ios" && $0.type == type }
+    }
 }
 
 // MARK: - Renderer
@@ -363,10 +466,20 @@ struct CrossUiRenderer: View {
 
     @ViewBuilder private var routeView: some View {
         let content = ScrollView { children }
-        if node.respectSafeArea {
+        let base: some View = if node.respectSafeArea {
             NavigationStack { content.navigationTitle(node.title ?? "") }
         } else {
             NavigationStack { content.navigationTitle(node.title ?? "").ignoresSafeArea() }
+        }
+        // Platform extension: presentation_style
+        let style = node.iosExtension("presentation_style")?.fields["style"] as? String
+        switch style {
+        case "sheet":
+            AnyView(base.sheet(isPresented: .constant(true)) { content })
+        case "full_screen_cover":
+            AnyView(base.fullScreenCover(isPresented: .constant(true)) { content })
+        default:
+            AnyView(base)
         }
     }
 
@@ -580,12 +693,25 @@ struct CrossUiRenderer: View {
     }
 
     @ViewBuilder private func listItem(_ child: CrossUiNode) -> some View {
-        if let action = node.onSelect {
-            Button { dispatch(CrossUiEvent.value(node.key, action, child.key)) } label: {
+        let base: AnyView = if let action = node.onSelect {
+            AnyView(Button { dispatch(CrossUiEvent.value(node.key, action, child.key)) } label: {
                 CrossUiRenderer(node: child, theme: theme, platformView: platformView, dispatch: dispatch, presentDialog: presentDialog)
+            })
+        } else {
+            AnyView(CrossUiRenderer(node: child, theme: theme, platformView: platformView, dispatch: dispatch, presentDialog: presentDialog))
+        }
+        // Platform extension: swipe_action
+        if let swipeExt = child.iosExtension("swipe_action"),
+           let swipeAction = swipeExt.fields["action"] as? String {
+            base.swipeActions {
+                Button(role: .destructive) {
+                    dispatch(CrossUiEvent.pressed(child.key, swipeAction))
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
             }
         } else {
-            CrossUiRenderer(node: child, theme: theme, platformView: platformView, dispatch: dispatch, presentDialog: presentDialog)
+            base
         }
     }
 }

@@ -75,9 +75,19 @@ data class CrossUiNode(
     val selected: String? = null,
     @SerialName("date_mode") val dateMode: String? = null,
     val semantics: CrossUiSemantics = CrossUiSemantics(),
-    val children: List<CrossUiNode> = emptyList()
+    val children: List<CrossUiNode> = emptyList(),
+    val extensions: List<CrossUiExtension> = emptyList()
 ) {
     val enabled: Boolean get() = semantics.enabled
+}
+
+@Serializable
+data class CrossUiExtension(
+    val platform: String,
+    val data: JsonElement
+) {
+    fun type(): String = data.jsonObject["type"]?.jsonPrimitive?.content ?: ""
+    fun field(name: String): JsonPrimitive? = data.jsonObject[name]?.jsonPrimitive
 }
 
 @Serializable
@@ -95,11 +105,25 @@ val LocalCrossUiTheme = staticCompositionLocalOf<CrossUiTheme> { CrossUiTheme() 
 
 @Composable
 fun CrossUiRenderer(node: CrossUiNode, dispatch: (String) -> Unit, modifier: Modifier = Modifier) {
+    // Apply Android platform extensions as modifiers.
+    val extModifier = node.extensions.fold(modifier) { mod, ext ->
+        when {
+            ext.platform == "android" && ext.type() == "elevation" -> {
+                val dp = ext.field("dp")?.content?.toFloatOrNull() ?: 0f
+                mod.shadow(elevation = dp.dp)
+            }
+            ext.platform == "android" && ext.type() == "dynamic_color_hint" -> {
+                // hue hint is captured by the theme system; passed through unchanged.
+                mod
+            }
+            else -> mod
+        }
+    }
     when (node.type) {
         "navigation" -> {
             val activeRoute = node.children.firstOrNull { it.key == node.active }
             if (node.mode == "stack") {
-                activeRoute?.let { CrossUiRenderer(it, dispatch, modifier) }
+                activeRoute?.let { CrossUiRenderer(it, dispatch, extModifier) }
             } else {
                 // Tab bar
                 var selectedTab by remember { mutableStateOf(node.active ?: node.children.firstOrNull()?.key ?: "") }
@@ -139,11 +163,11 @@ fun CrossUiRenderer(node: CrossUiNode, dispatch: (String) -> Unit, modifier: Mod
         "stack" -> {
             val dir = if (node.axis == "horizontal") Arrangement.Horizontal else Arrangement.Vertical
             if (dir == Arrangement.Horizontal) {
-                Row(modifier, horizontalArrangement = arr(node.alignment, true), verticalAlignment = Alignment.CenterVertically) {
+                Row(extModifier, horizontalArrangement = arr(node.alignment, true), verticalAlignment = Alignment.CenterVertically) {
                     node.children.forEach { CrossUiRenderer(it, dispatch) }
                 }
             } else {
-                Column(modifier, verticalArrangement = arr(node.alignment, false), horizontalAlignment = colAlign(node.alignment)) {
+                Column(extModifier, verticalArrangement = arr(node.alignment, false), horizontalAlignment = colAlign(node.alignment)) {
                     node.children.forEach { CrossUiRenderer(it, dispatch) }
                 }
             }
@@ -166,7 +190,7 @@ fun CrossUiRenderer(node: CrossUiNode, dispatch: (String) -> Unit, modifier: Mod
         }
         "text" -> {
             val fs = when (node.style) { "display" -> 36.sp; "headline" -> 28.sp; "title" -> 24.sp; "caption" -> 12.sp; "footnote" -> 11.sp; else -> 16.sp }
-            Text(node.text.orEmpty(), fontSize = fs, modifier = modifier.semantics {
+            Text(node.text.orEmpty(), fontSize = fs, modifier = extModifier.semantics {
                 node.semantics.label?.let { contentDescription = it }
                 if (node.semantics.role == "header") heading()
             })
@@ -194,7 +218,7 @@ fun CrossUiRenderer(node: CrossUiNode, dispatch: (String) -> Unit, modifier: Mod
                 node.label?.let { Text(it, Modifier.padding(start = 12.dp)) }
             }.semantics { node.semantics.label?.let { contentDescription = it } }
         }
-        "image" -> node.src?.let { AsyncImage(model = it, contentDescription = node.alt ?: node.semantics.label ?: "", modifier = modifier) }
+        "image" -> node.src?.let { AsyncImage(model = it, contentDescription = node.alt ?: node.semantics.label ?: "", modifier = extModifier) }
         "slider" -> {
             val sliderValue = remember(node.key) { mutableStateOf((node.value?.toFloatOrNull() ?: ((node.min ?: 0.0) + (node.max ?: 1.0)).toFloat() / 2f)) }
             Slider(value = sliderValue.value, onValueChange = { sliderValue.value = it; dispatch(ev(node.key, node.onChange.orEmpty(), it.toString())) },
@@ -204,7 +228,7 @@ fun CrossUiRenderer(node: CrossUiNode, dispatch: (String) -> Unit, modifier: Mod
         "picker" -> {
             var expanded by remember { mutableStateOf(false) }
             val sel = remember(node.key) { mutableStateOf(node.selected.orEmpty()) }
-            Box(modifier) {
+            Box(extModifier) {
                 OutlinedButton(onClick = { expanded = true }) {
                     Text(node.options?.firstOrNull { it.value == sel.value }?.label ?: sel.value)
                 }
@@ -242,7 +266,7 @@ fun CrossUiRenderer(node: CrossUiNode, dispatch: (String) -> Unit, modifier: Mod
             }.semantics { node.semantics.label?.let { contentDescription = it } }
         }
         "divider" -> HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        "card" -> ElevatedCard(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+        "card" -> ElevatedCard(modifier = extModifier.fillMaxWidth().padding(8.dp)) {
             Column(Modifier.padding(16.dp)) { node.children.forEach { CrossUiRenderer(it, dispatch) } }
         }
         "chip" -> {
