@@ -7,6 +7,11 @@ pub use crossui_ir::{
     ActionFrequency, Alignment, Axis, ButtonVariant, ChipVariant, DatePickerMode, Importance,
     InputType, NavigationMode, Node, NodeKind, PickerOption, Platform, ReturnKey, SemanticRole,
     SemanticTraits, TextStyle,
+    extensions::{
+        AndroidExtension, ComplicationFamily, CrownSensitivity, GlancePriority, HapticType,
+        IosExtension, IpadOsExtension, KeyModifier, MacOsExtension, PlatformExtension,
+        PresentationStyle, WatchOsExtension, WindowsExtension,
+    },
 };
 
 // -- Text ---------------------------------------------------------------
@@ -586,6 +591,122 @@ impl Accessible for Node {
     }
 }
 
+// -- Platform extension builders -------------------------------------------
+
+/// Builder methods for attaching platform-specific extensions to any node.
+pub trait PlatformExt: Sized {
+    // iOS
+    fn ios_haptic(self, ty: HapticType) -> Self;
+    fn ios_presentation(self, style: PresentationStyle) -> Self;
+    fn ios_swipe_action(self, action: impl Into<String>) -> Self;
+
+    // iPadOS
+    fn ipados_multicolumn(self, columns: u32) -> Self;
+    fn ipados_sidebar(self) -> Self;
+
+    // watchOS
+    fn watch_crown(self, sensitivity: CrownSensitivity) -> Self;
+    fn watch_glance(self, priority: GlancePriority) -> Self;
+
+    // macOS
+    fn mac_shortcut(self, key: impl Into<String>, modifiers: Vec<KeyModifier>) -> Self;
+    fn mac_toolbar(self, item_id: impl Into<String>) -> Self;
+
+    // Android
+    fn android_elevation(self, dp: f32) -> Self;
+
+    // Windows
+    fn windows_corner(self, radius: f32) -> Self;
+}
+
+impl PlatformExt for Node {
+    fn ios_haptic(mut self, ty: HapticType) -> Self {
+        self.extensions
+            .push(PlatformExtension::Ios(IosExtension::HapticFeedback {
+                feedback_type: ty,
+            }));
+        self
+    }
+
+    fn ios_presentation(mut self, style: PresentationStyle) -> Self {
+        self.extensions
+            .push(PlatformExtension::Ios(IosExtension::PresentationStyle {
+                style,
+            }));
+        self
+    }
+
+    fn ios_swipe_action(mut self, action: impl Into<String>) -> Self {
+        self.extensions
+            .push(PlatformExtension::Ios(IosExtension::SwipeAction {
+                action: action.into(),
+            }));
+        self
+    }
+
+    fn ipados_multicolumn(mut self, columns: u32) -> Self {
+        self.extensions.push(PlatformExtension::IpadOs(
+            IpadOsExtension::MulticolumnLayout { columns },
+        ));
+        self
+    }
+
+    fn ipados_sidebar(mut self) -> Self {
+        self.extensions
+            .push(PlatformExtension::IpadOs(IpadOsExtension::Sidebar {
+                visible: true,
+            }));
+        self
+    }
+
+    fn watch_crown(mut self, sensitivity: CrownSensitivity) -> Self {
+        self.extensions
+            .push(PlatformExtension::WatchOs(WatchOsExtension::CrownInput {
+                sensitivity,
+            }));
+        self
+    }
+
+    fn watch_glance(mut self, priority: GlancePriority) -> Self {
+        self.extensions.push(PlatformExtension::WatchOs(
+            WatchOsExtension::GlancePriority { priority },
+        ));
+        self
+    }
+
+    fn mac_shortcut(mut self, key: impl Into<String>, modifiers: Vec<KeyModifier>) -> Self {
+        self.extensions
+            .push(PlatformExtension::MacOs(MacOsExtension::KeyboardShortcut {
+                key: key.into(),
+                modifiers,
+            }));
+        self
+    }
+
+    fn mac_toolbar(mut self, item_id: impl Into<String>) -> Self {
+        self.extensions
+            .push(PlatformExtension::MacOs(MacOsExtension::ToolbarItem {
+                item_id: item_id.into(),
+            }));
+        self
+    }
+
+    fn android_elevation(mut self, dp: f32) -> Self {
+        self.extensions
+            .push(PlatformExtension::Android(AndroidExtension::Elevation {
+                dp,
+            }));
+        self
+    }
+
+    fn windows_corner(mut self, radius: f32) -> Self {
+        self.extensions.push(PlatformExtension::Windows(
+            WindowsExtension::CornerPreference { radius },
+        ));
+        self
+    }
+}
+
 // -- Macro ---------------------------------------------------------------
 
 #[macro_export]
@@ -896,5 +1017,46 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    // -- Platform extension builder tests ---------------------------------
+
+    #[test]
+    fn ios_haptic_builder_adds_extension() {
+        let node = button("del", "Delete", "delete").ios_haptic(HapticType::Error);
+        assert_eq!(node.extensions.len(), 1);
+        assert!(matches!(
+            &node.extensions[0],
+            PlatformExtension::Ios(IosExtension::HapticFeedback { .. })
+        ));
+    }
+
+    #[test]
+    fn ios_presentation_and_swipe_chain() {
+        let node = button("del", "Delete", "delete")
+            .ios_presentation(PresentationStyle::Sheet)
+            .ios_swipe_action("swipe_delete");
+        assert_eq!(node.extensions.len(), 2);
+    }
+
+    #[test]
+    fn mac_shortcut_builder() {
+        let node = button("save", "Save", "save").mac_shortcut("s", vec![KeyModifier::Command]);
+        assert_eq!(node.extensions.len(), 1);
+    }
+
+    #[test]
+    fn android_elevation_builder() {
+        let node = button("btn", "OK", "ok").android_elevation(4.0);
+        assert_eq!(node.extensions.len(), 1);
+    }
+
+    #[test]
+    fn multiple_platform_extensions_on_one_node() {
+        let node = button("del", "Delete", "delete")
+            .ios_haptic(HapticType::Error)
+            .mac_shortcut("⌫", vec![KeyModifier::Command])
+            .android_elevation(6.0);
+        assert_eq!(node.extensions.len(), 3);
     }
 }

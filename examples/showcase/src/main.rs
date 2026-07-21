@@ -1,9 +1,9 @@
 use crossui_core::{Reducer, Store};
 use crossui_dsl::{
-    Accessible, InputExt, InputType, ReturnKey, SemanticRole, button, caption, checkbox,
-    destructive_button, dialog, display, divider, email_input, filter_chip, footnote, hstack,
-    image, input_chip, picker, picker_option, route, search_input, secure_input, slider,
-    tab_navigation, text, toggle, ui, vstack,
+    Accessible, HapticType, InputExt, InputType, KeyModifier, PlatformExt, PresentationStyle,
+    ReturnKey, SemanticRole, button, caption, checkbox, destructive_button, dialog, display,
+    divider, email_input, filter_chip, footnote, hstack, image, input_chip, picker, picker_option,
+    route, search_input, secure_input, slider, tab_navigation, text, toggle, ui, vstack,
 };
 use crossui_export::{ExportTarget, export};
 use crossui_ir::{ColorScheme, Theme, TokenValue, UiDocument};
@@ -153,9 +153,16 @@ impl Reducer for Login {
                     "actions",
                     ui![
                         button("submit", "Continue", "submit")
-                            .accessibility("Continue", SemanticRole::Button),
+                            .accessibility("Continue", SemanticRole::Button)
+                            .mac_shortcut("↩", vec![KeyModifier::Command]),
                         destructive_button("delete_account", "Delete", "show_delete_dialog")
-                            .accessibility("Delete account", SemanticRole::Button),
+                            .accessibility("Delete account", SemanticRole::Button)
+                            .irreversible()
+                            .critical()
+                            .ios_haptic(HapticType::Error)
+                            .ios_presentation(PresentationStyle::Sheet)
+                            .mac_shortcut("⌫", vec![KeyModifier::Command, KeyModifier::Shift])
+                            .android_elevation(8.0),
                     ],
                 ));
                 c.push(caption("version", "v0.2.0 – CrossUI v2.1 components"));

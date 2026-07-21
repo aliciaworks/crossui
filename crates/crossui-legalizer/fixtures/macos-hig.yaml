@@ -1,0 +1,54 @@
+# macOS HIG rule pack – v0.1.0
+
+rules:
+  - id: macos.keyboard-shortcut
+    applies_to:
+      platform: macos
+    when:
+      - field: node_kind
+        equals: button
+    result:
+      legality: warning
+      message: "Frequently-used buttons should have a keyboard shortcut on macOS."
+
+  - id: macos.menu-command
+    applies_to:
+      platform: macos
+    when:
+      - field: node_kind
+        equals: button
+      - field: interaction_duration
+        equals: extended
+    result:
+      legality: warning
+      message: "Commands used in extended desktop sessions should also appear in the menu bar."
+
+  - id: macos.window-sizing
+    applies_to:
+      platform: macos
+    when:
+      - field: columns
+        greater_than: 4
+    result:
+      legality: info
+      message: "Wide layouts should respond to window resizing on macOS."
+
+  - id: macos.pointer-precision
+    applies_to:
+      platform: macos
+    when:
+      - field: node_kind
+        equals: input
+    result:
+      legality: warning
+      message: "Inputs on macOS should support keyboard navigation (Tab/Shift+Tab)."
+
+  - id: macos.toolbar-integration
+    applies_to:
+      platform: macos
+    when:
+      - field: node_kind
+        equals: button
+    result:
+      legality: info
+      message: "Consider placing primary actions in the window toolbar for macOS."

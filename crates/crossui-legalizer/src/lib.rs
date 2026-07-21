@@ -34,12 +34,11 @@
 //! ```
 
 use crossui_ir::{
-    DocumentError, SemanticTraits, UiDocument, ValidationError,
+    DocumentError, UiDocument,
     extensions::{ExtensionMismatch, PlatformExtension, UnsupportedExtensionPolicy},
     profile::TargetProfile,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use thiserror::Error;
 
 // ---------------------------------------------------------------------------

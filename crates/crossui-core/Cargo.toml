@@ -6,7 +6,12 @@ license.workspace = true
 
 [dependencies]
 crossui-ir = { path = "../crossui-ir" }
+crossui-legalizer = { path = "../crossui-legalizer", optional = true }
 log = "0.4"
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+
+[features]
+default = []
+legalizer = ["dep:crossui-legalizer"]

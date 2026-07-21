@@ -45,6 +45,7 @@ name = "crossui-core"
 version = "0.1.0"
 dependencies = [
  "crossui-ir",
+ "crossui-legalizer",
  "log",
  "serde",
  "serde_json",

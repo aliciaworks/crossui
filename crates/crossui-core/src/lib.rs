@@ -106,6 +106,24 @@ where
             })
             .collect::<Result<Vec<_>, _>>()?;
 
+        // Legalizer integration (optional, debug-only by default).
+        #[cfg(feature = "legalizer")]
+        if cfg!(debug_assertions) {
+            let doc = self.store.document();
+            let profile = crossui_ir::profile::TargetProfile::iphone();
+            if let Ok(resolved) = crossui_legalizer::compile(doc, &profile, None) {
+                for w in &resolved.hig_warnings {
+                    warn!(target: "crossui.legalizer", "HIG [{}]: {}", w.rule_id, w.message);
+                }
+                for d in &resolved.derived {
+                    debug!(target: "crossui.legalizer", "derived policy for {}: {} (by: {:?})", d.node_key, d.policy, d.derived_by);
+                }
+                if !resolved.extension_report.mismatches.is_empty() {
+                    warn!(target: "crossui.legalizer", "{} extension mismatches detected", resolved.extension_report.mismatches.len());
+                }
+            }
+        }
+
         Ok(ApplicationUpdate {
             document: self.store.document().clone(),
             patch: update.patch,
