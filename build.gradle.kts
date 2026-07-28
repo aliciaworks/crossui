@@ -28,3 +28,31 @@ tasks.register("publishCrossUiToMavenLocal") {
         ":gradle-plugin:publishToMavenLocal",
     )
 }
+
+val existingKmpFixtureCommand = listOf(
+    if (System.getProperty("os.name").startsWith("Windows")) {
+        rootProject.file("gradlew.bat").absolutePath
+    } else {
+        rootProject.file("gradlew").absolutePath
+    },
+    "-p",
+    rootProject.file("integration-tests/existing-kmp-app").absolutePath,
+    ":shared-ui:testAndroidHostTest",
+    ":shared-ui:crossuiDoctor",
+    ":shared-ui:verifyCrossUi",
+    ":android-app:assembleDebug",
+)
+
+val integrationTestExistingKmpWarmup = tasks.register<Exec>(
+    "integrationTestExistingKmpWarmup",
+) {
+    dependsOn("publishCrossUiToMavenLocal")
+    commandLine(existingKmpFixtureCommand)
+}
+
+tasks.register<Exec>("integrationTestExistingKmp") {
+    group = "verification"
+    description = "Builds an independent KMP Android consumer and reuses its configuration cache."
+    dependsOn(integrationTestExistingKmpWarmup)
+    commandLine(existingKmpFixtureCommand)
+}

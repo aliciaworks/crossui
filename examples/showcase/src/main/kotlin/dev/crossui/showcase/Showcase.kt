@@ -7,6 +7,18 @@ import dev.crossui.ir.*
 import java.nio.file.Files
 import java.nio.file.Path
 
+private data class WinUiFixtureState(
+    val email: String = "",
+    val status: String = "",
+    val isSubmitting: Boolean = false,
+    val canSubmit: Boolean = true,
+)
+
+private sealed interface WinUiFixtureAction {
+    data class EmailChanged(val value: String) : WinUiFixtureAction
+    data object Submit : WinUiFixtureAction
+}
+
 fun showcaseDocument(): UiDocument = document(
     tabNavigation(
         "app",
@@ -78,17 +90,47 @@ fun showcaseDocument(): UiDocument = document(
     ),
 )
 
+private fun winUiFixtureDocument(): UiDocument =
+    typedDocument<WinUiFixtureState, WinUiFixtureAction>(
+        route("fixture", "Typed binding fixture") {
+            +vstack("fixture-content") {
+                +emailInput(
+                    "fixture-email",
+                    bind(WinUiFixtureState::email),
+                    "Email address",
+                    event("email_changed") { WinUiFixtureAction.EmailChanged(it) },
+                )
+                +text("fixture-status", bind(WinUiFixtureState::status))
+                +loading("fixture-loading", "Signing in")
+                    .visibleWhen(bind(WinUiFixtureState::isSubmitting))
+                +button(
+                    "fixture-submit",
+                    "Continue",
+                    event(WinUiFixtureAction.Submit),
+                ).enabledWhen(bind(WinUiFixtureState::canSubmit))
+            }
+        },
+        stateType = "dev.crossui.showcase.WinUiFixtureState",
+        actionType = "dev.crossui.showcase.WinUiFixtureAction",
+    )
+
 fun main(args: Array<String>) {
     val document = showcaseDocument()
     if (args.firstOrNull() == "--generate") {
         val hosts = Path.of(args.getOrElse(1) { error("Missing hosts directory") })
-        val sources = CrossUiCompiler.generate(document, typeName = "CrossUiShowcase")
+        val sources = CrossUiCompiler.generate(document, typeName = "CrossUiShowcase") +
+            CrossUiCompiler.generate(
+                winUiFixtureDocument(),
+                targets = setOf(ExportTarget.WinUi3),
+                typeName = "CrossUiTypedFixture",
+            )
         val mappedSources = sources.map { source ->
-            val relative = when (source.target) {
-                ExportTarget.SwiftUi -> "ios/generated/CrossUiShowcase.swift"
-                ExportTarget.JetpackCompose -> "android/generated/CrossUiShowcase.kt"
-                ExportTarget.WinUi3 -> "windows/generated/CrossUiShowcase.xaml"
+            val directory = when (source.target) {
+                ExportTarget.SwiftUi -> "ios/generated"
+                ExportTarget.JetpackCompose -> "android/generated"
+                ExportTarget.WinUi3 -> "windows/generated"
             }
+            val relative = "$directory/${source.relativePath}"
             val mapped = source.copy(
                 relativePath = relative,
                 mappings = source.mappings.map { it.copy(generatedFile = relative) },
@@ -112,6 +154,7 @@ fun main(args: Array<String>) {
     if (target == null) {
         println(document.toJson())
     } else {
-        println(CrossUiCompiler.generate(document, setOf(target)).single().content)
+        CrossUiCompiler.generate(document, setOf(target))
+            .forEach { println(it.content) }
     }
 }

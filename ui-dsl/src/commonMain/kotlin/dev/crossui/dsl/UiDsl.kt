@@ -74,6 +74,9 @@ private fun String.toSnakeCase(): String =
 fun text(key: String, value: String) =
     Node(NodeKey(key), NodeKind.Text(value))
 
+fun text(key: String, value: StateBinding<String>) =
+    text(key, "").withBinding("value", value)
+
 fun text(key: String, value: String, style: TextStyle) =
     Node(NodeKey(key), NodeKind.Text(value, style))
 
@@ -351,6 +354,12 @@ fun Node.accessibility(
 
 fun Node.fromSource(file: String, line: Int? = null, column: Int? = null) =
     copy(source = SourceLocation(file, line, column))
+
+fun Node.visibleWhen(binding: StateBinding<Boolean>) =
+    withBinding("visible", binding)
+
+fun Node.enabledWhen(binding: StateBinding<Boolean>) =
+    withBinding("enabled", binding)
 
 private fun <T> Node.withBinding(field: String, binding: StateBinding<T>) =
     copy(bindings = bindings + (field to binding.reference))

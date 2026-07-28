@@ -16,19 +16,19 @@
                         <!-- crossui-node:logo -->
                         <Image Source="https://example.com/logo.png" AutomationProperties.Name="App logo" />
                         <!-- crossui-node:email -->
-                        <TextBox Text="" PlaceholderText="you@example.com" Tag="email_changed" AutomationProperties.Name="Email" />
+                        <TextBox Text="" PlaceholderText="you@example.com" Tag="email_changed" TextChanged="OnTextChanged" AutomationProperties.Name="Email" />
                         <!-- crossui-node:password -->
-                        <PasswordBox Password="" PlaceholderText="Password" Tag="password_changed" AutomationProperties.Name="Password" />
+                        <PasswordBox Password="" PlaceholderText="Password" Tag="password_changed" PasswordChanged="OnPasswordChanged" AutomationProperties.Name="Password" />
                         <!-- crossui-node:search -->
-                        <TextBox Text="" PlaceholderText="Search…" Tag="search_changed" />
+                        <TextBox Text="" PlaceholderText="Search…" Tag="search_changed" TextChanged="OnTextChanged" />
                         <!-- crossui-node:remember -->
-                        <ToggleSwitch Header="Remember me" IsOn="false" Tag="remember_changed" />
+                        <ToggleSwitch Header="Remember me" IsOn="false" Tag="remember_changed" Toggled="OnToggleChanged" />
                         <!-- crossui-node:volume-label -->
                         <TextBlock Text="Volume: 50%" />
                         <!-- crossui-node:volume -->
-                        <Slider Value="0.5" Minimum="0.0" Maximum="1.0" StepFrequency="0.05" Tag="volume_changed" AutomationProperties.Name="Volume" />
+                        <Slider Value="0.5" Minimum="0.0" Maximum="1.0" StepFrequency="0.05" Tag="volume_changed" ValueChanged="OnSliderChanged" AutomationProperties.Name="Volume" />
                         <!-- crossui-node:terms -->
-                        <CheckBox Content="I agree to the Terms" IsChecked="false" Tag="terms_changed" />
+                        <CheckBox Content="I agree to the Terms" IsChecked="false" Tag="terms_changed" Click="OnCheckboxChanged" />
                         <!-- crossui-node:chips -->
                         <StackPanel Orientation="Horizontal" Spacing="16">
                             <!-- crossui-node:ios -->
@@ -41,7 +41,7 @@
                         <!-- crossui-node:separator -->
                         <Border Height="1" Background="{ThemeResource SystemControlForegroundBaseLowBrush}" />
                         <!-- crossui-node:language -->
-                        <ComboBox SelectedValue="en" Tag="language_changed">
+                        <ComboBox SelectedValue="en" Tag="language_changed" SelectionChanged="OnSelectionChanged">
                             <ComboBoxItem Content="English" Tag="en" />
                             <ComboBoxItem Content="中文" Tag="zh" />
                             <ComboBoxItem Content="日本語" Tag="ja" />
@@ -49,9 +49,9 @@
                         <!-- crossui-node:actions -->
                         <StackPanel Orientation="Horizontal" Spacing="16">
                             <!-- crossui-node:submit -->
-                            <Button Content="Continue" Tag="submit" AutomationProperties.Name="Continue" />
+                            <Button Content="Continue" Tag="submit" Click="OnAction" AutomationProperties.Name="Continue" />
                             <!-- crossui-node:delete -->
-                            <Button Content="Delete" Tag="show_delete" AutomationProperties.Name="Delete account" />
+                            <Button Content="Delete" Tag="show_delete" Click="OnAction" AutomationProperties.Name="Delete account" />
                         </StackPanel>
                         <!-- crossui-node:summary -->
                         <Border CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">

@@ -22,6 +22,7 @@ Run these commands after compiler, IR, DSL, or runtime changes:
 ./gradlew build --no-configuration-cache
 ./gradlew generateNativeUi
 ./gradlew :gradle-plugin:test
+./gradlew integrationTestExistingKmp
 dotnet build hosts/windows/CrossUi.Windows.csproj
 ```
 

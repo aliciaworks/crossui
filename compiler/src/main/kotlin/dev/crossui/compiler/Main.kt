@@ -81,12 +81,15 @@ private fun explain(options: List<String>) {
     val key = NodeKey(options.required("--node"))
     val target = ExportTarget.parse(options.valueAfter("--target") ?: "compose")
     val node = document.findNode(key) ?: error("Node '${key.value}' was not found.")
-    val source = CrossUiCompiler.generate(
+    val sources = CrossUiCompiler.generate(
         document = document,
         targets = setOf(target),
         typeName = options.valueAfter("--name") ?: "CrossUiGenerated",
         nativeViews = options.nativeViews(),
-    ).single()
+    )
+    val source = sources.firstOrNull { generated ->
+        generated.mappings.any { it.nodeKey == key.value }
+    } ?: sources.first()
     val mapping = source.mappings.firstOrNull { it.nodeKey == key.value }
 
     println("CrossUI node ${key.value}")

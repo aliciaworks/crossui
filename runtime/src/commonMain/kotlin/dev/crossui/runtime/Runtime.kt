@@ -19,6 +19,21 @@ interface Reducer<State, Action, Effect> {
     fun reduce(state: State, action: Action): Reduction<State, Effect>
 }
 
+/**
+ * The platform-neutral boundary consumed by generated native UI.
+ *
+ * Native views observe [states] and send typed actions through [send]. The
+ * connector owns state management; generated UI never interprets an IR tree.
+ */
+interface UiConnector<State, Action> {
+    val states: StateFlow<State>
+    fun send(action: Action)
+}
+
+fun interface UiActionMapper<Action> {
+    fun map(action: String, value: String?): Action
+}
+
 data class Reduction<State, Effect>(
     val state: State,
     val effects: List<Effect> = emptyList(),
@@ -32,12 +47,16 @@ data class StoreUpdate<State, Effect>(
 class Store<State, Action, Effect>(
     initialState: State,
     private val reducer: Reducer<State, Action, Effect>,
-) {
+) : UiConnector<State, Action> {
     private val observers = mutableSetOf<(State) -> Unit>()
     private val mutableStates = MutableStateFlow(initialState)
 
-    val states: StateFlow<State> = mutableStates.asStateFlow()
+    override val states: StateFlow<State> = mutableStates.asStateFlow()
     val state: State get() = mutableStates.value
+
+    override fun send(action: Action) {
+        dispatch(action)
+    }
 
     fun dispatch(action: Action): StoreUpdate<State, Effect> {
         val reduction = reducer.reduce(state, action)
@@ -148,12 +167,16 @@ class AsyncStore<State, Action, Effect>(
     reducer: Reducer<State, Action, Effect>,
     private val scope: CoroutineScope,
     private val handler: AsyncEffectHandler<Action, Effect>,
-) {
+) : UiConnector<State, Action> {
     private val store = Store(initialState, reducer)
     private val jobs = mutableSetOf<Job>()
 
     val state: State get() = store.state
-    val states: StateFlow<State> get() = store.states
+    override val states: StateFlow<State> get() = store.states
+
+    override fun send(action: Action) {
+        dispatch(action)
+    }
 
     fun dispatch(action: Action) {
         val update = store.dispatch(action)

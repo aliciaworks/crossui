@@ -25,6 +25,22 @@ class RuntimeTest {
     }
 
     @Test
+    fun connectorSendsTypedActions() {
+        val store = Store(
+            initialState = 1,
+            reducer = object : Reducer<Int, Int, Nothing> {
+                override fun reduce(state: Int, action: Int): Reduction<Int, Nothing> =
+                    Reduction(state + action)
+            },
+        )
+
+        val connector: UiConnector<Int, Int> = store
+        connector.send(2)
+
+        assertEquals(3, connector.states.value)
+    }
+
+    @Test
     fun navigationBackStackIsSharedLogic() {
         val state = NavigationState("login").navigate("projects").navigate("detail").back()
         assertEquals("projects", state.activeRoute)

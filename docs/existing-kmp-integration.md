@@ -57,9 +57,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation("dev.crossui:ui-ir:0.1.0")
-            implementation("dev.crossui:ui-dsl:0.1.0")
-            implementation("dev.crossui:runtime:0.1.0")
+            api("dev.crossui:ui-ir:0.1.0")
+            api("dev.crossui:ui-dsl:0.1.0")
+            api("dev.crossui:runtime:0.1.0")
         }
     }
 }
@@ -134,6 +134,73 @@ build/generated/crossui/
 Each target directory includes `crossui-map.json`. Generated files contain
 `crossui-node:<key>` markers so platform compiler errors can be traced to the
 semantic node and optional DSL source location.
+
+## 5. Connect shared state and actions
+
+Generated Compose screens include an overload that accepts the runtime's typed
+connector and action mapper:
+
+```kotlin
+object SettingsActions : UiActionMapper<SettingsAction> {
+    override fun map(action: String, value: String?): SettingsAction =
+        when (action) {
+            "email_changed" -> SettingsAction.EmailChanged(value.orEmpty())
+            "save" -> SettingsAction.Save
+            else -> error("Unknown settings action: $action")
+        }
+}
+
+@Composable
+fun SettingsHost(connector: UiConnector<SettingsState, SettingsAction>) {
+    SettingsScreen(connector, SettingsActions)
+}
+```
+
+`UiConnector` exposes `StateFlow<State>` and accepts typed actions. Generated
+Compose code collects the flow and recomposes normal native controls; it does
+not render IR or JSON at runtime. Use `visibleWhen`, `enabledWhen`, and bound
+text for state-driven loading, validation, and result UI.
+
+For structured async effects, `AsyncStore` already implements `UiConnector`.
+The host owns its `CoroutineScope` and calls `close()` when the feature leaves
+the lifecycle.
+
+### SwiftUI adapter
+
+For typed documents, the Swift backend emits `<TypeName>Model` using
+`@Observable` and `<TypeName>Connected`. The existing iOS target provides three
+small bridges: an initial Kotlin state snapshot, an observation closure that
+returns a cancellation closure, and a typed action sender. The connected view
+maps generated event names to exported KMP actions. No IR is interpreted at
+runtime.
+
+### WinUI adapter
+
+The WinUI backend emits both XAML and code-behind. The generated state class
+implements `INotifyPropertyChanged`; editable controls use two-way `x:Bind`,
+while visibility, enabled state, and display text use one-way bindings.
+Construct the control with an `Action<string, string?>` dispatcher and push
+host snapshots through generated `Apply<Property>` methods.
+
+Kotlin/Native does not directly expose KMP classes as .NET types. CrossUI
+therefore keeps the .NET interop seam explicit instead of pretending that the
+Windows host can consume a Kotlin object directly. Existing WinUI projects can
+retain their current Kotlin bridge, RPC client, or platform service and connect
+it to the small generated adapter.
+
+## End-to-end consumer fixture
+
+The standalone fixture uses only published Maven Local artifacts and packages a
+real Android APK:
+
+```shell
+./gradlew integrationTestExistingKmp
+```
+
+Its build is located at `integration-tests/existing-kmp-app`. It verifies
+provider class loading, Android KMP variant resolution, generated source
+registration, typed state/action wiring, async effects, configuration-cache
+reuse, and Android application compilation.
 
 ## Incremental adoption modes
 

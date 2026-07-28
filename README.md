@@ -41,6 +41,7 @@ The project requires JDK 21. It uses the Gradle wrapper:
 ```shell
 ./gradlew build
 ./gradlew generateNativeUi
+./gradlew integrationTestExistingKmp
 ```
 
 On Windows:
@@ -55,6 +56,7 @@ Generation writes:
 - `hosts/ios/generated/CrossUiShowcase.swift`
 - `hosts/android/generated/CrossUiShowcase.kt`
 - `hosts/windows/generated/CrossUiShowcase.xaml`
+- `hosts/windows/generated/CrossUiShowcase.xaml.cs`
 
 The showcase module owns this task, so generation happens as part of its `build`.
 Generated native source is checked in to make platform review and integration
@@ -102,8 +104,17 @@ native escape hatch is supplied. Typed hints such as `iosHaptic`,
 - Generated files contain stable node markers and source-map manifests.
 - `StateFlow`, `Async<T>`, structured effect handling, settings contracts, and
   lifecycle cancellation live in the KMP runtime.
+- Generated Compose screens can consume `UiConnector<State, Action>` directly;
+  state collection and typed action dispatch are wired without a runtime UI
+  interpreter.
+- Typed SwiftUI output includes an Observation-backed connected model; typed
+  WinUI output includes compiled XAML plus an `INotifyPropertyChanged` adapter.
 - `crossuiDoctor`, `verifyCrossUi`, `explain`, and `diff` provide deterministic
   diagnostics for developers and coding agents.
+
+`integration-tests/existing-kmp-app` is a standalone consumer build. It resolves
+CrossUI from Maven Local, generates a stateful Compose login screen, compiles the
+generated source, runs the async reducer test, and packages a debug Android APK.
 
 ## License
 

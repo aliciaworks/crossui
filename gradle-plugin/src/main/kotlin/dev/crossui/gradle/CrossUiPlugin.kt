@@ -178,7 +178,7 @@ class CrossUiPlugin : Plugin<Project> {
             task.targets.set(extension.targets)
             task.typeName.set(extension.typeName)
         }
-        tasks.register(
+        val doctor = tasks.register(
             "crossuiDoctor",
             CrossUiDoctorTask::class.java,
         ) { task ->
@@ -186,7 +186,7 @@ class CrossUiPlugin : Plugin<Project> {
             task.description = "Validates CrossUI IR and integration settings."
             task.configureDocument(extension)
         }
-        tasks.register(
+        val verify = tasks.register(
             "verifyCrossUi",
             CrossUiVerifyTask::class.java,
         ) { task ->
@@ -197,6 +197,7 @@ class CrossUiPlugin : Plugin<Project> {
             task.targets.set(extension.targets)
             task.typeName.set(extension.typeName)
         }
+        verify.configure { it.dependsOn(generate) }
         tasks.matching { it.name == "assemble" }.configureEach { task ->
             task.dependsOn(generate)
         }
@@ -210,9 +211,10 @@ class CrossUiPlugin : Plugin<Project> {
             configurations.matching { it.name == "jvmRuntimeClasspath" }.configureEach { configuration ->
                 extension.providerClasspath.from(configuration)
             }
-            tasks.matching { it.name == "jvmJar" }.configureEach { providerJar ->
-                extension.providerClasspath.from(providerJar.outputs.files)
-                generate.configure { task -> task.dependsOn(providerJar) }
+            val providerJars = tasks.matching { it.name == "jvmJar" }
+            extension.providerClasspath.from(providerJars)
+            listOf(generate, doctor, verify).forEach { providerTask ->
+                providerTask.configure { it.dependsOn(providerJars) }
             }
             tasks.matching { it.name == "compileAndroidMain" }.configureEach {
                 it.dependsOn(generate)
@@ -223,9 +225,10 @@ class CrossUiPlugin : Plugin<Project> {
             configurations.matching { it.name == "runtimeClasspath" }.configureEach { configuration ->
                 extension.providerClasspath.from(configuration)
             }
-            tasks.matching { it.name == "jar" }.configureEach { providerJar ->
-                extension.providerClasspath.from(providerJar.outputs.files)
-                generate.configure { task -> task.dependsOn(providerJar) }
+            val providerJars = tasks.matching { it.name == "jar" }
+            extension.providerClasspath.from(providerJars)
+            listOf(generate, doctor, verify).forEach { providerTask ->
+                providerTask.configure { it.dependsOn(providerJars) }
             }
         }
     }
