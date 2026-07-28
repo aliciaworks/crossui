@@ -1,9 +1,0 @@
-[package]
-name = "crossui-dsl"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-
-[dependencies]
-crossui-ir = { path = "../crossui-ir" }
-serde_json.workspace = true

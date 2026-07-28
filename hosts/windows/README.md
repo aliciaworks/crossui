@@ -1,25 +1,15 @@
-# WinUI 3 host verification
+# WinUI 3 host
 
-This standalone, unpackaged WinUI 3 project renders the same login contract used
-by the Rust showcase and the Android Compose host. It intentionally uses native
-Windows App SDK controls: `TextBox`, `PasswordBox`, `Button`, `ProgressRing`,
-and `TextBlock`. Semantic labels are mapped through WinUI automation properties.
-For leaf-only keyed patches (for example, an input value change), the renderer
-updates the existing native control in place. Navigation and structural patches
-intentionally rebuild the view tree, which keeps the fallback path predictable.
+The generated `CrossUiShowcase.xaml` file is compiled as normal WinUI markup.
+`MainWindow` hosts that generated control directly; no native DLL, C ABI, JSON
+decoder, or runtime renderer is involved.
 
-Register a target-only view before rendering a document that contains a
-`PlatformView`:
-
-```csharp
-CrossUiRenderer.RegisterPlatformView("map", payload => new MyMapControl(payload));
-```
-
-Only `platform: "windows"` nodes use this registration. Other platforms and
-unknown names remain visible diagnostics.
-
-Build it from this directory with:
+Generate the XAML, then build:
 
 ```powershell
-dotnet build
+.\gradlew.bat generateNativeUi
+dotnet build .\hosts\windows\CrossUi.Windows.csproj
 ```
+
+Event handlers are intentionally an integration seam: bind generated `Tag`
+values to the application's KMP-backed state dispatcher in the host layer.

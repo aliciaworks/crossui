@@ -10,11 +10,4 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
   </ItemGroup>
-  <Target Name="CopyCrossUiNativeLibrary" AfterTargets="Build">
-    <Copy
-      SourceFiles="$(MSBuildThisFileDirectory)..\..\target\release\crossui_ffi.dll"
-      DestinationFolder="$(OutDir)"
-      SkipUnchangedFiles="true"
-      Condition="Exists('$(MSBuildThisFileDirectory)..\..\target\release\crossui_ffi.dll')" />
-  </Target>
 </Project>

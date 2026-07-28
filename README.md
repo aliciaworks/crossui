@@ -1,110 +1,94 @@
 # CrossUI
 
-CrossUI is a Rust-first, native UI bridge. Application code produces a versioned,
-serializable UI document. Small SwiftUI, Jetpack Compose, and eventually WinUI 3
-hosts render that document with platform-native controls.
+CrossUI is a Kotlin-first native UI compiler. A semantic Kotlin DSL is validated
+and lowered on the JVM during the build, then emitted as SwiftUI, Jetpack Compose,
+and WinUI 3 source. Applications do not ship an IR interpreter or render a JSON
+tree at runtime.
 
-See [the architecture guide](docs/architecture.md) for runtime boundaries and
-host responsibilities.
+## Architecture
 
-This repository currently implements the Rust MVP contract:
-
-- `crossui-ir`: the stable, JSON-serializable UI boundary and keyed diff.
-- `crossui-dsl`: typed Rust constructors for the cross-platform component set.
-- `crossui-core`: unidirectional state, effects, capabilities, and the JSON bridge.
-- `crossui-testing`: assertions for UI documents and diffs.
-- `hosts`: reference SwiftUI and Compose renderers for the wire contract.
-
-Run `cargo test --workspace` or `cargo run -p showcase`.
-
-## Android bridge
-
-`crossui-android` is an arm64 JNI bridge for the sample Compose host located at
-the sibling repository `../testandroidapp`. The host calls Rust for the initial
-document and for every UI event; Rust returns the next JSON document.
-
-The JNI runtime only depends on `crossui_core::Application`. The sample
-application is `examples/login-app`; replace that crate's `create_app` factory
-with an application-specific crate to change the UI and business state without
-changing the Android runtime or Compose renderer.
-
-Build and copy the native library before building the Android app:
-
-```powershell
-.\scripts\build-android.ps1
+```text
+Kotlin UI DSL
+    -> semantic KMP IR
+    -> JVM legalizer and platform lowering
+    -> build-time source generation
+       -> SwiftUI
+       -> Jetpack Compose
+       -> WinUI 3
 ```
 
-The script requires the Android NDK installed at the standard Android Studio
-location and the Rust `aarch64-linux-android` target. Then build the Android
-app from `../testandroidapp` with `./gradlew.bat :app:assembleDebug`.
+The modules intentionally have different responsibilities:
 
-## Windows and iOS hosts
+- `ui-ir`: versioned semantic IR, target profiles, typed platform extensions,
+  validation, serialization, and keyed document diffs.
+- `ui-dsl`: the portable Kotlin DSL and explicit platform escape hatches.
+- `legalizer`: JVM validation and platform/HIG policy derivation.
+- `compiler`: JVM CLI and native source backends.
+- `runtime`: small KMP state/event/binding/navigation/environment library.
+- `examples/login-app`: shared state and business-logic example.
+- `examples/showcase`: DSL input compiled into native host source.
 
-`hosts/windows` is a WinUI 3 renderer that loads `crossui-ffi.dll` through the
-C ABI and renders the same document/event contract as Android. Build the Rust
-library with `./scripts/build-windows.ps1`, then run `dotnet run` from
-`hosts/windows`.
+The KMP libraries build for JVM and JavaScript plus the current host's native
+target. Apple targets are enabled on macOS, Windows uses `mingwX64`, and Linux
+uses `linuxX64`. Native UI itself is not shared: each backend emits the platform's
+own controls and navigation conventions.
 
-`hosts/ios` contains the SwiftUI renderer and `CrossUiNativeProvider`, which
-binds the same C ABI. On macOS, run `./scripts/build-ios.sh`, add the resulting
-`libcrossui_ffi.a` to an Xcode target, and initialize `CrossUiHost` with
-`CrossUiNativeProvider()`. Set `CROSSUI_IOS_TARGET=aarch64-apple-ios-sim` when
-building for an Apple Silicon simulator.
+## Build and generate
 
-## Boundary
+The project requires JDK 21. It uses the Gradle wrapper:
 
-The IR deliberately describes intent rather than pixels. A `Button` has an action,
-variant, and accessibility semantics; each host chooses the native control and
-platform treatment. Features that cannot be represented portably use an explicit
-capability or platform view extension.
+```shell
+./gradlew build
+./gradlew generateNativeUi
+```
 
-`crossui_core::ComponentCatalog` declares the portable component contract.
-See [the component catalog](docs/component-catalog.md) for the host support
-matrix.
-Hosts render unsupported `platform_view` nodes as visible diagnostics instead of
-silently substituting unrelated native controls. The current WinUI and SwiftUI
-hosts natively map text, button, input (including secure input), stack, list,
-form, loading, navigation, and route, and resolve `spacing.sm`, `spacing.md`,
-and `spacing.lg` to platform-native layout values. The semantic `primary`
-color is rendered as a WinUI brush and SwiftUI button tint; a theme change
-invalidates the IR root so hosts refresh the native treatment.
+On Windows:
 
-On Android, `theme.android.dynamic_color` selects the Android system dynamic
-scheme where available, and `theme.android.material3_expressive` selects
-`MaterialExpressiveTheme`; when it is false the same host uses standard
-Material 3. These flags are Android-only and do not force an iOS or Windows
-visual style.
+```powershell
+.\gradlew.bat build
+.\gradlew.bat generateNativeUi
+```
 
-All native hosts currently accept IR version `1` only and reject unknown
-versions before rendering. A version bump is therefore an explicit host
-compatibility change rather than a best-effort decode.
+Generation writes:
 
-The DSL provides `input`, `input_with_placeholder`, and `secure_input`; all
-three preserve their input semantics through the JSON boundary. Native hosts use
-their platform's secure text field for `secure_input`, rather than merely hiding
-the value with a visual style.
+- `hosts/ios/generated/CrossUiShowcase.swift`
+- `hosts/android/generated/CrossUiShowcase.kt`
+- `hosts/windows/generated/CrossUiShowcase.xaml`
 
-`ButtonVariant::Primary`, `Secondary`, and `Destructive` remain semantic. The
-Android host selects Material 3 filled, outlined, or error-colored buttons;
-SwiftUI uses tint or its destructive role; WinUI uses its native button with the
-configured primary or destructive brush. Use `button`, `secondary_button`, or
-`destructive_button` from the DSL rather than hand-writing the IR variant.
+The showcase module owns this task, so generation happens as part of its `build`.
+Generated native source is checked in to make platform review and integration
+straightforward.
 
-## Experimental source export
+## Compiler CLI
 
-The runtime remains the supported delivery path. For migration or prototyping,
-`crossui-export` can generate a one-way native source starting point from an IR
-document. Run the showcase with `cargo run -p showcase -- swiftui`, `compose`,
-or `winui3`. Generated code deliberately leaves actions as target-project
-stubs and rejects `PlatformView`; it is not a synchronised round trip.
+The standalone JVM compiler accepts a serialized semantic IR document:
 
-Use `crossui_dsl::platform_view` only for an intentional platform extension,
-such as a map or a camera preview. It carries a target `Platform`, a host-owned
-name, and JSON payload. `CapabilitySet` is constructed by the native host, so
-an application must check an advertised capability before requesting a native
-operation; unavailable capabilities are explicit errors, never silent fallbacks.
+```shell
+./gradlew :compiler:run --args="--input ui.json --output generated --targets swiftui,compose,winui3 --name SettingsView"
+```
 
-For operations such as camera, storage, or maps, host integrations can route a
-Rust `NativeRequest` through `NativeModuleRegistry`. A host registers only
-modules for its own platform. The registry rejects platform mismatches and
-checks the request's advertised capability before calling the adapter.
+The normal Kotlin-first workflow calls `CrossUiCompiler.generate` from a build
+source module, as `examples/showcase` does. This avoids unstable Kotlin compiler
+plugin APIs while keeping generation deterministic and ahead of runtime.
+
+## DSL example
+
+```kotlin
+val settings = document(
+    route("settings", "Settings") {
+        +title("heading", "Settings")
+        +form("settings-form") {
+            +emailInput("email", "", "you@example.com", "email_changed")
+            +button("save", "Save", "save")
+        }
+    },
+)
+```
+
+Platform-specific nodes remain explicit and fail generation until the relevant
+native escape hatch is supplied. Typed hints such as `iosHaptic`,
+`androidElevation`, and `macShortcut` are validated against target profiles.
+
+## License
+
+MIT or Apache-2.0.

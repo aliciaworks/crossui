@@ -22,18 +22,17 @@ component.
 | Dialog | ✅ v2.0 | native — `.alert` | native — `AlertDialog` | native — `ContentDialog` |
 | Slider | ✅ v2.1 | native — `Slider(value:in:step:)` | native — `Slider(valueRange=)` | native — `Slider` |
 | Picker | ✅ v2.1 | native — `Picker(.menu)` | native — `DropdownMenu` | native — `ComboBox` |
-| DatePicker | ✅ v2.1 | native — `DatePicker` | stub — planned Material3 | native — `CalendarDatePicker`/`TimePicker` |
-| Checkbox | ✅ v2.2 | native — `Toggle(.checkbox)` | native — `Checkbox` | native — `CheckBox` |
+| DatePicker | ✅ v2.1 | native — `DatePicker` | native — Material 3 `DatePicker` | native — `CalendarDatePicker`/`TimePicker` |
+| Checkbox | ✅ v2.2 | adapted — `Button` + SF Symbol | native — `Checkbox` | native — `CheckBox` |
 | Divider | ✅ v2.2 | native — `Divider()` | native — `HorizontalDivider()` | native — `Border(1px)` |
 | Card | ✅ v2.2 | native — `VStack` + `.regularMaterial` | native — `ElevatedCard` | native — `Border` w/ card brush |
 | Chip | ✅ v2.2 | adapted — `Capsule` + optional ✕ | native — `InputChip`/`SuggestionChip` | adapted — `Border` + optional `SymbolIcon` |
-| PlatformView | ✅ | unsupported without host registration | unsupported without host registration | unsupported without host registration |
+| PlatformView | ✅ | compile-time error without escape hatch | compile-time error without escape hatch | compile-time error without escape hatch |
 
 `PlatformView` is intentionally outside the portable component set. Use a
-target platform, a host-owned name, a JSON payload, and an advertised
-capability. The generic renderers show an explicit diagnostic until a target
-application registers an implementation (WinUI) or injects a rendering closure
-(SwiftUI).
+target platform, a host-owned name, a typed payload, and an advertised
+capability. Source generation fails until the target backend is given an
+explicit native escape hatch.
 
 ## Navigation modes
 

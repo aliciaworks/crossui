@@ -1,0 +1,295 @@
+package dev.crossui.ir
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+
+const val IR_VERSION: UInt = 2u
+
+val CrossUiJson = Json {
+    prettyPrint = true
+    encodeDefaults = true
+    explicitNulls = false
+    classDiscriminator = "type"
+    ignoreUnknownKeys = false
+}
+
+@Serializable
+data class UiDocument(
+    val version: UInt = IR_VERSION,
+    val root: Node,
+    val theme: Theme = Theme(),
+) {
+    @kotlinx.serialization.Transient
+    private var index: Map<NodeKey, Node> = buildIndex(root)
+
+    fun validate() {
+        require(version == IR_VERSION) { "Unsupported IR version $version" }
+        val keys = mutableSetOf<NodeKey>()
+        root.walk {
+            require(it.key.value.isNotBlank()) { "Node key cannot be empty" }
+            require(keys.add(it.key)) { "Duplicate node key: ${it.key.value}" }
+        }
+    }
+
+    fun findNode(key: NodeKey): Node? {
+        if (index.isEmpty()) index = buildIndex(root)
+        return index[key]
+    }
+
+    fun toJson(): String = CrossUiJson.encodeToString(serializer(), this)
+
+    companion object {
+        fun fromJson(value: String): UiDocument =
+            CrossUiJson.decodeFromString(serializer(), value).also { it.validate() }
+    }
+}
+
+private fun buildIndex(root: Node): Map<NodeKey, Node> = buildMap {
+    root.walk { put(it.key, it) }
+}
+
+fun Node.walk(visitor: (Node) -> Unit) {
+    visitor(this)
+    children.forEach { it.walk(visitor) }
+}
+
+@Serializable
+data class NodeKey(val value: String)
+
+@Serializable
+data class Node(
+    val key: NodeKey,
+    val kind: NodeKind,
+    val semantics: Semantics = Semantics(),
+    val children: List<Node> = emptyList(),
+    val extensions: List<PlatformExtension> = emptyList(),
+) {
+    fun withChildren(vararg nodes: Node) = copy(children = nodes.toList())
+    fun withChildren(nodes: List<Node>) = copy(children = nodes)
+}
+
+@Serializable
+sealed interface NodeKind {
+    @Serializable
+    @SerialName("text")
+    data class Text(val text: String, val style: TextStyle = TextStyle.Body) : NodeKind
+
+    @Serializable
+    @SerialName("button")
+    data class Button(
+        val label: String,
+        val action: String,
+        val variant: ButtonVariant = ButtonVariant.Primary,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("input")
+    data class Input(
+        val value: String,
+        val placeholder: String? = null,
+        val onChange: String,
+        val secure: Boolean = false,
+        val inputType: InputType = InputType.Text,
+        val returnKey: ReturnKey? = null,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("stack")
+    data class Stack(
+        val axis: Axis,
+        val spacing: String? = null,
+        val alignment: Alignment = Alignment.Center,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("list")
+    data class ListNode(val onSelect: String? = null) : NodeKind
+
+    @Serializable
+    @SerialName("form")
+    data object Form : NodeKind
+
+    @Serializable
+    @SerialName("loading")
+    data class Loading(val label: String? = null) : NodeKind
+
+    @Serializable
+    @SerialName("navigation")
+    data class Navigation(
+        val active: String,
+        val mode: NavigationMode = NavigationMode.Tab,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("route")
+    data class Route(
+        val title: String,
+        val respectSafeArea: Boolean = true,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("platform_view")
+    data class PlatformView(
+        val platform: Platform,
+        val name: String,
+        val payload: JsonElement,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("toggle")
+    data class Toggle(
+        val label: String? = null,
+        val checked: Boolean,
+        val onChange: String,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("image")
+    data class Image(val src: String, val alt: String? = null) : NodeKind
+
+    @Serializable
+    @SerialName("dialog")
+    data class Dialog(
+        val title: String,
+        val confirmLabel: String? = null,
+        val confirmAction: String? = null,
+        val cancelLabel: String? = null,
+        val cancelAction: String? = null,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("slider")
+    data class Slider(
+        val value: Double,
+        val min: Double,
+        val max: Double,
+        val step: Double? = null,
+        val onChange: String,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("picker")
+    data class Picker(
+        val selected: String,
+        val options: List<PickerOption>,
+        val onChange: String,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("date_picker")
+    data class DatePicker(
+        val value: String? = null,
+        val mode: DatePickerMode = DatePickerMode.DateTime,
+        val onChange: String,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("checkbox")
+    data class Checkbox(
+        val label: String? = null,
+        val checked: Boolean,
+        val onChange: String,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("divider")
+    data object Divider : NodeKind
+
+    @Serializable
+    @SerialName("card")
+    data object Card : NodeKind
+
+    @Serializable
+    @SerialName("chip")
+    data class Chip(
+        val label: String,
+        val variant: ChipVariant = ChipVariant.Input,
+        val onDismiss: String? = null,
+    ) : NodeKind
+}
+
+@Serializable data class PickerOption(val label: String, val value: String)
+@Serializable enum class TextStyle { Display, Headline, Title, Body, Caption, Footnote }
+@Serializable enum class InputType { Text, Email, Number, Phone, Url, Password }
+@Serializable enum class ReturnKey { Done, Go, Search, Send, Next }
+@Serializable enum class ButtonVariant { Primary, Secondary, Destructive }
+@Serializable enum class ChipVariant { Input, Filter, Suggestion }
+@Serializable enum class NavigationMode { Tab, Stack }
+@Serializable enum class DatePickerMode { Date, Time, DateTime }
+@Serializable enum class Axis { Horizontal, Vertical }
+@Serializable enum class Alignment { Start, Center, End, Stretch }
+@Serializable enum class Platform { Ios, Android, Windows }
+
+@Serializable
+data class Semantics(
+    val label: String? = null,
+    val hint: String? = null,
+    val role: SemanticRole? = null,
+    val enabled: Boolean = true,
+    val traits: SemanticTraits = SemanticTraits(),
+)
+
+@Serializable
+data class SemanticTraits(
+    val irreversible: Boolean = false,
+    val frequency: ActionFrequency = ActionFrequency.Frequent,
+    val importance: Importance = Importance.Normal,
+)
+
+@Serializable enum class ActionFrequency { Rare, Occasional, Frequent }
+@Serializable enum class Importance { Normal, High, Critical }
+@Serializable enum class SemanticRole {
+    Button, Header, TextField, List, Form, Image, Slider, Picker, Checkbox, Link,
+}
+
+@Serializable
+data class Theme(
+    val colorScheme: ColorScheme = ColorScheme.System,
+    val tokens: Map<String, TokenValue> = emptyMap(),
+    val android: AndroidTheme = AndroidTheme(),
+)
+
+@Serializable enum class ColorScheme { System, Light, Dark }
+
+@Serializable
+sealed interface TokenValue {
+    @Serializable @SerialName("color") data class Color(val value: String) : TokenValue
+    @Serializable @SerialName("number") data class Number(val value: Double) : TokenValue
+    @Serializable @SerialName("text") data class Text(val value: String) : TokenValue
+}
+
+@Serializable
+data class AndroidTheme(
+    val material3Expressive: Boolean = false,
+    val dynamicColor: Boolean = false,
+)
+
+@Serializable
+sealed interface DiffOp {
+    val key: NodeKey
+    @Serializable @SerialName("insert") data class Insert(override val key: NodeKey) : DiffOp
+    @Serializable @SerialName("remove") data class Remove(override val key: NodeKey) : DiffOp
+    @Serializable @SerialName("update") data class Update(override val key: NodeKey) : DiffOp
+}
+
+fun diff(previous: UiDocument, next: UiDocument): List<DiffOp> {
+    val before = buildIndex(previous.root)
+    val after = buildIndex(next.root)
+    val operations = buildList {
+        before.forEach { (key, old) ->
+            val current = after[key]
+            when {
+                current == null -> add(DiffOp.Remove(key))
+                old.kind != current.kind || old.semantics != current.semantics ->
+                    add(DiffOp.Update(key))
+            }
+        }
+        after.keys.filterNot(before::containsKey).forEach { add(DiffOp.Insert(it)) }
+        if (previous.theme != next.theme &&
+            none { it is DiffOp.Update && it.key == next.root.key }
+        ) add(DiffOp.Update(next.root.key))
+    }
+    return operations
+}

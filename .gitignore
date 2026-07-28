@@ -1,6 +1,8 @@
-# Rust
-/target/
-**/*.rs.bk
+# Gradle / Kotlin
+.gradle/
+**/build/
+kotlin-js-store/
+.kotlin/
 
 # .NET / WinUI build outputs
 [Bb]in/
