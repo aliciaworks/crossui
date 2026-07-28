@@ -9,6 +9,7 @@ class UiDslTest {
     private data class SettingsState(
         val email: String = "",
         val enabled: Boolean = false,
+        val darkMode: Boolean = false,
     )
 
     private sealed interface SettingsAction {
@@ -61,5 +62,48 @@ class UiDslTest {
         assertEquals("SettingsAction", document.actionType?.substringAfterLast('.'))
         assertEquals("email", document.root.children.first().bindings["value"]?.path)
         assertEquals("save", (document.root.children.last().kind as NodeKind.Button).action)
+    }
+
+    @Test
+    fun appStorageSettingRecordsExplicitPlatformOwnership() {
+        val darkMode = appStorage("appearance.dark_mode", false)
+        val declaration = setting(
+            darkMode,
+            SettingsState::darkMode,
+            "dark_mode_changed",
+        )
+        val document = typedDocument<SettingsState, SettingsAction>(
+            text("title", "Settings"),
+            settings = listOf(declaration),
+        )
+
+        assertEquals(SettingOwnership.PlatformUi, declaration.ownership)
+        assertEquals(SettingStorage.Preferences, declaration.storage)
+        assertEquals(SettingValueType.Boolean, declaration.valueType)
+        assertEquals("darkMode", declaration.statePath)
+        assertEquals(listOf(declaration), document.settings)
+    }
+
+    @Test
+    fun localizedTextKeepsFallbackAndResourceIdentity() {
+        val resource = localized(
+            key = "settings.save",
+            fallback = "Save",
+            namespace = "Settings",
+        )
+        val document = document(
+            button("save", resource, "save"),
+        )
+
+        assertEquals("Save", (document.root.kind as NodeKind.Button).label)
+        assertEquals(resource, document.root.localizedText[LocalizedField.Label])
+    }
+
+    @Test
+    fun ordinaryStringsRemainLiteralDslInput() {
+        val document = document(text("message", "Hello"))
+
+        assertEquals("Hello", (document.root.kind as NodeKind.Text).text)
+        assertEquals(emptyMap(), document.root.localizedText)
     }
 }

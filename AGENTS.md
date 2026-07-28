@@ -30,6 +30,13 @@ Generated output must be deterministic. `git diff --check` must pass, and no
 Rust source, Cargo manifest, FFI bridge, or runtime UI JSON renderer may be
 introduced.
 
+Handwritten Kotlin, Gradle Kotlin DSL, C#, Swift, and XAML files must not exceed
+500 lines. Run `./gradlew verifySourceFileSize` after structural changes.
+
+Consumer-generated output belongs below ignored `build/` directories.
+`hosts/*/generated` is intentionally checked in as deterministic review and
+native compiler fixtures; regenerate it instead of editing it.
+
 ## Architecture constraints
 
 - CrossUI DSL and IR describe semantics, not a shared rendered widget tree.

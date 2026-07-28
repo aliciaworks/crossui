@@ -2,6 +2,7 @@ package dev.crossui.gradle
 
 import dev.crossui.compiler.CrossUiCompiler
 import dev.crossui.compiler.ExportTarget
+import dev.crossui.compiler.LocalizationRegistry
 import dev.crossui.ir.UiDocument
 import dev.crossui.ir.UiDocumentProvider
 import dev.crossui.ir.walk
@@ -16,6 +17,7 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.CacheableTask
@@ -37,6 +39,9 @@ abstract class CrossUiExtension @Inject constructor(objects: ObjectFactory) {
     val outputDirectory: DirectoryProperty = objects.directoryProperty()
     val targets: ListProperty<String> = objects.listProperty(String::class.java)
     val typeName: Property<String> = objects.property(String::class.java)
+    val androidResourceClass: Property<String> = objects.property(String::class.java)
+    val localizationResolvers: MapProperty<String, String> =
+        objects.mapProperty(String::class.java, String::class.java)
 }
 
 @DisableCachingByDefault(because = "Base task has no outputs of its own.")
@@ -52,6 +57,12 @@ abstract class CrossUiDocumentTask : DefaultTask() {
 
     @get:Classpath
     abstract val providerClasspath: ConfigurableFileCollection
+
+    @get:Input
+    abstract val androidResourceClass: Property<String>
+
+    @get:Input
+    abstract val localizationResolvers: MapProperty<String, String>
 
     protected fun loadDocument(): UiDocument {
         if (providerClass.isPresent) {
@@ -77,6 +88,13 @@ abstract class CrossUiDocumentTask : DefaultTask() {
         }
         return UiDocument.fromJson(input.get().asFile.readText())
     }
+
+    protected fun localization(): LocalizationRegistry = LocalizationRegistry.build {
+        androidResources(androidResourceClass.get())
+        localizationResolvers.get().forEach { (target, template) ->
+            register(ExportTarget.parse(target), template)
+        }
+    }
 }
 
 @CacheableTask
@@ -99,6 +117,7 @@ abstract class CrossUiGenerateTask : CrossUiDocumentTask() {
                 output = outputDirectory.dir(target.cliName).get().asFile.toPath(),
                 targets = setOf(target),
                 typeName = typeName.get(),
+                localization = localization(),
             )
         }
     }
@@ -144,6 +163,7 @@ abstract class CrossUiVerifyTask : CrossUiDocumentTask() {
             document = document,
             targets = targets.get().map(ExportTarget::parse).toSet(),
             typeName = typeName.get(),
+            localization = localization(),
         )
         val stale = generated.filter {
             val path = outputDirectory
@@ -166,6 +186,8 @@ class CrossUiPlugin : Plugin<Project> {
         extension.outputDirectory.convention(layout.buildDirectory.dir("generated/crossui"))
         extension.targets.convention(ExportTarget.entries.map(ExportTarget::cliName))
         extension.typeName.convention("CrossUiGenerated")
+        extension.androidResourceClass.convention("R")
+        extension.localizationResolvers.convention(emptyMap())
 
         val generate = tasks.register(
             "generateCrossUi",
@@ -237,5 +259,7 @@ class CrossUiPlugin : Plugin<Project> {
         input.set(extension.input)
         providerClass.set(extension.providerClass)
         providerClasspath.from(extension.providerClasspath)
+        androidResourceClass.set(extension.androidResourceClass)
+        localizationResolvers.set(extension.localizationResolvers)
     }
 }

@@ -13,6 +13,9 @@ public sealed partial class CrossUiTypedFixture : UserControl
 {
     public Action<string, string?> Dispatch { get; }
     public CrossUiTypedFixtureState State { get; }
+    public string LocalizedFixtureTitle => Localize("fixture.title", "Typed binding fixture");
+    public string LocalizedFixtureSubmitLabel => Localize("fixture.continue", "Continue");
+    public string LocalizedFixtureDarkModeLabel => Localize("fixture.dark_mode", "Dark Mode");
 
     public CrossUiTypedFixture() : this((_, _) => { })
     {
@@ -24,6 +27,22 @@ public sealed partial class CrossUiTypedFixture : UserControl
         State = new CrossUiTypedFixtureState(dispatch);
         InitializeComponent();
     }
+
+    private readonly Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+
+    private string Localize(string key, string fallback)
+    {
+        try
+        {
+            var value = resourceLoader.GetString(key);
+            return string.IsNullOrEmpty(value) ? fallback : value;
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
 
     public Visibility BooleanToVisibility(bool value) =>
         value ? Visibility.Visible : Visibility.Collapsed;
@@ -168,6 +187,33 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
 
         canSubmit = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanSubmit)));
+    }
+
+
+    private bool darkMode = false;
+
+    public bool DarkMode
+    {
+        get => darkMode;
+        set => SetDarkMode(value, true);
+    }
+
+    public void ApplyDarkMode(bool value) =>
+        SetDarkMode(value, false);
+
+    private void SetDarkMode(bool value, bool dispatchChange)
+    {
+        if (Equals(darkMode, value))
+        {
+            return;
+        }
+
+        darkMode = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DarkMode)));
+        if (dispatchChange)
+        {
+            dispatch("dark_mode_changed", value.ToString().ToLowerInvariant());
+        }
     }
 
 }

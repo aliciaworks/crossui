@@ -138,6 +138,44 @@ class CompilerTest {
     }
 
     @Test
+    fun swiftUiEmitsAppStorageForPlatformOwnedPreference() {
+        val source = typedDocument<TestState, TestAction>(
+            toggle(
+                "dark-mode",
+                "Dark Mode",
+                bind(TestState::loading),
+                "dark_mode_changed",
+            ),
+            settings = listOf(
+                setting(
+                    appStorage("appearance.dark_mode", false),
+                    TestState::loading,
+                    "dark_mode_changed",
+                ),
+            ),
+        )
+
+        val generated = CrossUiCompiler.generate(
+            source,
+            setOf(ExportTarget.SwiftUi),
+            typeName = "SettingsView",
+        ).single().content
+
+        assertTrue(
+            generated.contains(
+                "@AppStorage(\"appearance.dark_mode\") private var storedLoading: Bool = false",
+            ),
+        )
+        assertTrue(generated.contains(".onChange(of: storedLoading)"))
+        assertTrue(generated.contains(".onChange(of: model.state.loading)"))
+        assertTrue(
+            generated.contains(
+                "model.dispatch(actions(\"dark_mode_changed\", String(value)))",
+            ),
+        )
+    }
+
+    @Test
     fun winUiEmitsObservableStateAndEventCodeBehind() {
         val source = typedDocument<TestState, TestAction>(
             vstack("content") {
@@ -167,5 +205,84 @@ class CompilerTest {
         assertTrue(codeBehind.contains("INotifyPropertyChanged"))
         assertTrue(codeBehind.contains("public void ApplyEmail(string value)"))
         assertTrue(codeBehind.contains("dispatch(\"email_changed\", value)"))
+    }
+
+    @Test
+    fun lowersLocalizedResourcesToNativePlatformApis() {
+        val source = document(
+            text("welcome", localized("home.welcome", "Welcome")),
+        )
+        val localization = LocalizationRegistry.build {
+            androidResources("com.example.app.R")
+        }
+        val generated = CrossUiCompiler.generate(
+            source,
+            typeName = "WelcomeView",
+            localization = localization,
+        )
+        val swift = generated.single { it.target == ExportTarget.SwiftUi }.content
+        val compose = generated
+            .single { it.target == ExportTarget.JetpackCompose }
+            .content
+        val xaml = generated
+            .single { it.relativePath == "WelcomeView.xaml" }
+            .content
+        val csharp = generated
+            .single { it.relativePath == "WelcomeView.xaml.cs" }
+            .content
+
+        assertTrue(
+            swift.contains(
+                "String(localized: \"home.welcome\", defaultValue: \"Welcome\")",
+            ),
+        )
+        assertTrue(
+            compose.contains(
+                "stringResource(com.example.app.R.string.home_welcome)",
+            ),
+        )
+        assertTrue(xaml.contains("LocalizedWelcomeValue"))
+        assertTrue(csharp.contains("ResourceLoader resourceLoader = new()"))
+        assertTrue(csharp.contains("Localize(\"home.welcome\", \"Welcome\")"))
+    }
+
+    @Test
+    fun customLocalizationResolversAreEmbeddedAtCompileTime() {
+        val source = document(
+            button("save", localized("settings.save", "Save"), "save"),
+        )
+        val localization = LocalizationRegistry.build {
+            register(
+                ExportTarget.SwiftUi,
+                "AppStrings.resolve(\"{{key}}\", fallback: \"{{fallback}}\")",
+            )
+            register(
+                ExportTarget.JetpackCompose,
+                "AppStrings.resolve(\"{{key}}\", \"{{fallback}}\")",
+            )
+            register(
+                ExportTarget.WinUi3,
+                "AppStrings.Resolve(\"{{key}}\", \"{{fallback}}\")",
+            )
+        }
+        val generated = CrossUiCompiler.generate(
+            source,
+            typeName = "SettingsView",
+            localization = localization,
+        )
+
+        assertTrue(
+            generated.single { it.target == ExportTarget.SwiftUi }
+                .content.contains("AppStrings.resolve(\"settings.save\""),
+        )
+        assertTrue(
+            generated.single { it.target == ExportTarget.JetpackCompose }
+                .content.contains("AppStrings.resolve(\"settings.save\""),
+        )
+        val csharp = generated
+            .single { it.relativePath == "SettingsView.xaml.cs" }
+            .content
+        assertTrue(csharp.contains("AppStrings.Resolve(\"settings.save\""))
+        assertTrue(!csharp.contains("ResourceLoader resourceLoader"))
     }
 }

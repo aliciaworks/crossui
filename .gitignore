@@ -4,6 +4,7 @@
 kotlin-js-store/
 .kotlin/
 
+
 # .NET / WinUI build outputs
 [Bb]in/
 [Oo]bj/

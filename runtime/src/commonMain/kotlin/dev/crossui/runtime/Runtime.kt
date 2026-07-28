@@ -199,17 +199,9 @@ class AsyncStore<State, Action, Effect>(
     }
 }
 
-enum class SettingStorage {
-    Preferences,
-    SavedState,
-    Secure,
-}
-
-data class SettingKey<Value>(
-    val name: String,
-    val default: Value,
-    val storage: SettingStorage = SettingStorage.Preferences,
-)
+typealias SettingStorage = dev.crossui.ir.SettingStorage
+typealias SettingOwnership = dev.crossui.ir.SettingOwnership
+typealias SettingKey<Value> = dev.crossui.ir.SettingKey<Value>
 
 interface Setting<Value> {
     val value: StateFlow<Value>

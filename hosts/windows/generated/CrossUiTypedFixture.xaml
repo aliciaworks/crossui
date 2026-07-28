@@ -15,7 +15,9 @@
                 <!-- crossui-node:fixture-loading -->
                 <ProgressRing IsActive="True" Visibility="{x:Bind BooleanToVisibility(State.IsSubmitting), Mode=OneWay}" />
                 <!-- crossui-node:fixture-submit -->
-                <Button Content="Continue" Tag="submit" Click="OnAction" IsEnabled="{x:Bind State.CanSubmit, Mode=OneWay}" />
+                <Button Content="{x:Bind LocalizedFixtureSubmitLabel, Mode=OneTime}" Tag="submit" Click="OnAction" IsEnabled="{x:Bind State.CanSubmit, Mode=OneWay}" />
+                <!-- crossui-node:fixture-dark-mode -->
+                <ToggleSwitch Header="{x:Bind LocalizedFixtureDarkModeLabel, Mode=OneTime}" IsOn="{x:Bind State.DarkMode, Mode=TwoWay}" Tag="dark_mode_changed" />
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

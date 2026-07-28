@@ -16,6 +16,32 @@ tasks.register("generateNativeUi") {
     dependsOn(":examples:showcase:generateNativeUi")
 }
 
+tasks.register("verifySourceFileSize") {
+    group = "verification"
+    description = "Fails when a handwritten source file exceeds 500 lines."
+    val sourceFiles = fileTree(rootDir) {
+        include("**/*.kt", "**/*.kts", "**/*.cs", "**/*.swift", "**/*.xaml")
+        exclude(
+            "**/build/**",
+            "**/.gradle/**",
+            "**/bin/**",
+            "**/obj/**",
+            "hosts/*/generated/**",
+        )
+    }
+    inputs.files(sourceFiles)
+    doLast {
+        val oversized = sourceFiles.files.mapNotNull { file ->
+            val lines = file.readLines().size
+            if (lines > 500) "${file.relativeTo(rootDir)}: $lines lines" else null
+        }
+        check(oversized.isEmpty()) {
+            "Handwritten source files must not exceed 500 lines:\n" +
+                oversized.joinToString("\n")
+        }
+    }
+}
+
 tasks.register("publishCrossUiToMavenLocal") {
     group = "publishing"
     description = "Publishes the CrossUI DSL, runtime, compiler, and Gradle plugin locally."

@@ -29,6 +29,43 @@ The host-provided `observe` closure returns a cancellation closure. Call
 marshalled onto `@MainActor`, `@Observable` drives SwiftUI invalidation, and
 generated bindings send typed actions through the host mapper.
 
+Apple-owned preferences can opt into readable generated `@AppStorage`:
+
+```kotlin
+val darkMode = appStorage("appearance.dark_mode", false)
+
+typedDocument<SettingsState, SettingsAction>(
+    root = settingsScreen,
+    settings = listOf(
+        setting(
+            darkMode,
+            SettingsState::darkMode,
+            event("dark_mode_changed") {
+                SettingsAction.DarkModeChanged(it.toBoolean())
+            },
+        ),
+    ),
+)
+```
+
+CrossUI synchronizes the stored value and typed KMP state in both directions.
+Equality guards prevent the synchronization from redispatching its own update.
+Use this only when the platform UI owns the preference. Settings owned by shared
+business logic keep the default `SettingOwnership.SharedState` and use the KMP
+`SettingsStore`.
+
+For preferences owned by shared Kotlin business logic, instantiate the Apple
+runtime adapter instead:
+
+```kotlin
+val settings: SettingsStore = UserDefaultsSettingsStore()
+```
+
+The adapter supports Boolean, String, Int, and Double preferences, preserves
+the declared default when a key is absent, and returns one shared `StateFlow`
+per key. It rejects `PlatformUi`, secure, and saved-state declarations so
+ownership mistakes fail early.
+
 Regenerate it from the repository root:
 
 ```shell

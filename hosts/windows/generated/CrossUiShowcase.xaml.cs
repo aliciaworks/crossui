@@ -23,6 +23,7 @@ public sealed partial class CrossUiShowcase : UserControl
         InitializeComponent();
     }
 
+
     public Visibility BooleanToVisibility(bool value) =>
         value ? Visibility.Visible : Visibility.Collapsed;
 

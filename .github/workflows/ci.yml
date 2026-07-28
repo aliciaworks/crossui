@@ -19,7 +19,7 @@ jobs:
           cache: gradle
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test
-        run: ./gradlew build
+        run: ./gradlew build verifySourceFileSize
       - name: Build independent KMP Android consumer
         run: ./gradlew integrationTestExistingKmp
       - name: Verify generated native source is current
@@ -45,3 +45,24 @@ jobs:
         run: .\gradlew.bat generateNativeUi
       - name: Compile generated WinUI controls
         run: dotnet build .\hosts\windows\CrossUi.Windows.csproj
+
+  apple:
+    name: Apple KMP and Swift generation
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile Apple settings adapter
+        run: |
+          ./gradlew :runtime:compileKotlinIosSimulatorArm64 \
+            :ui-dsl:compileKotlinIosSimulatorArm64 \
+            :ui-ir:compileKotlinIosSimulatorArm64
+      - name: Generate SwiftUI source
+        run: ./gradlew generateNativeUi
+      - name: Verify generated Apple source is current
+        run: git diff --exit-code -- hosts/ios hosts/crossui-map.json

@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
-const val IR_VERSION: UInt = 2u
+const val IR_VERSION: UInt = 4u
 
 fun interface UiDocumentProvider {
     fun document(): UiDocument
@@ -26,6 +26,7 @@ data class UiDocument(
     val theme: Theme = Theme(),
     val stateType: String? = null,
     val actionType: String? = null,
+    val settings: List<SettingDeclaration> = emptyList(),
 ) {
     @kotlinx.serialization.Transient
     private var index: Map<NodeKey, Node> = buildIndex(root)
@@ -36,6 +37,53 @@ data class UiDocument(
         root.walk {
             require(it.key.value.isNotBlank()) { "Node key cannot be empty" }
             require(keys.add(it.key)) { "Duplicate node key: ${it.key.value}" }
+            val supportedFields = it.kind.supportedLocalizedFields()
+            it.localizedText.forEach { (field, text) ->
+                require(field in supportedFields) {
+                    "${it.kind::class.simpleName} does not support localized field $field"
+                }
+                text.validate("${it.key.value}.$field")
+            }
+            (it.kind as? NodeKind.Picker)?.options?.forEach { option ->
+                option.localizedLabel?.validate("${it.key.value}.option.${option.value}")
+            }
+        }
+        val settingKeys = mutableSetOf<String>()
+        settings.forEach { setting ->
+            require(setting.key.isNotBlank()) { "Setting key cannot be empty" }
+            require(setting.statePath.isNotBlank()) {
+                "Setting state path cannot be empty: ${setting.key}"
+            }
+            require(setting.onChange.isNotBlank()) {
+                "Setting action cannot be empty: ${setting.key}"
+            }
+            require(settingKeys.add(setting.key)) {
+                "Duplicate setting key: ${setting.key}"
+            }
+            when (setting.valueType) {
+                SettingValueType.Boolean -> require(
+                    setting.defaultValue == "true" || setting.defaultValue == "false",
+                ) {
+                    "Invalid Boolean default for setting ${setting.key}"
+                }
+                SettingValueType.String -> Unit
+                SettingValueType.Int -> require(setting.defaultValue.toIntOrNull() != null) {
+                    "Invalid Int default for setting ${setting.key}"
+                }
+                SettingValueType.Double -> require(
+                    setting.defaultValue.toDoubleOrNull()?.isFinite() == true,
+                ) {
+                    "Invalid Double default for setting ${setting.key}"
+                }
+            }
+            if (setting.ownership == SettingOwnership.PlatformUi) {
+                require(setting.storage == SettingStorage.Preferences) {
+                    "PlatformUi settings must use Preferences storage: ${setting.key}"
+                }
+                require(stateType != null && actionType != null) {
+                    "PlatformUi settings require a typed document: ${setting.key}"
+                }
+            }
         }
     }
 
@@ -51,6 +99,76 @@ data class UiDocument(
             CrossUiJson.decodeFromString(serializer(), value).also { it.validate() }
     }
 }
+
+private fun LocalizedText.validate(location: String) {
+    if (this is LocalizedText.Resource) {
+        require(key.isNotBlank()) { "Localized resource key cannot be empty: $location" }
+        require('?' !in key && '#' !in key) {
+            "Localized resource key cannot contain '?' or '#': $location"
+        }
+        require(namespace == null || namespace.isNotBlank()) {
+            "Localized resource namespace cannot be blank: $location"
+        }
+    }
+}
+
+private fun NodeKind.supportedLocalizedFields(): Set<LocalizedField> = when (this) {
+    is NodeKind.Text -> setOf(LocalizedField.Value)
+    is NodeKind.Button -> setOf(LocalizedField.Label)
+    is NodeKind.Input -> setOf(LocalizedField.Placeholder)
+    is NodeKind.Loading -> setOf(LocalizedField.Label)
+    is NodeKind.Route -> setOf(LocalizedField.Title)
+    is NodeKind.Toggle -> setOf(LocalizedField.Label)
+    is NodeKind.Image -> setOf(LocalizedField.Alt)
+    is NodeKind.Dialog -> setOf(
+        LocalizedField.Title,
+        LocalizedField.ConfirmLabel,
+        LocalizedField.CancelLabel,
+    )
+    is NodeKind.Checkbox -> setOf(LocalizedField.Label)
+    is NodeKind.Chip -> setOf(LocalizedField.Label)
+    else -> emptySet()
+}
+
+@Serializable
+enum class SettingStorage {
+    Preferences,
+    SavedState,
+    Secure,
+}
+
+@Serializable
+enum class SettingOwnership {
+    SharedState,
+    PlatformUi,
+    External,
+}
+
+@Serializable
+enum class SettingValueType {
+    Boolean,
+    String,
+    Int,
+    Double,
+}
+
+data class SettingKey<Value>(
+    val name: String,
+    val default: Value,
+    val storage: SettingStorage = SettingStorage.Preferences,
+    val ownership: SettingOwnership = SettingOwnership.SharedState,
+)
+
+@Serializable
+data class SettingDeclaration(
+    val key: String,
+    val statePath: String,
+    val valueType: SettingValueType,
+    val defaultValue: String,
+    val storage: SettingStorage = SettingStorage.Preferences,
+    val ownership: SettingOwnership = SettingOwnership.SharedState,
+    val onChange: String,
+)
 
 private fun buildIndex(root: Node): Map<NodeKey, Node> = buildMap {
     root.walk { put(it.key, it) }
@@ -72,6 +190,7 @@ data class Node(
     val children: List<Node> = emptyList(),
     val extensions: List<PlatformExtension> = emptyList(),
     val bindings: Map<String, BindingRef> = emptyMap(),
+    val localizedText: Map<LocalizedField, LocalizedText> = emptyMap(),
     val source: SourceLocation? = null,
 ) {
     fun withChildren(vararg nodes: Node) = copy(children = nodes.toList())
@@ -83,6 +202,38 @@ data class BindingRef(
     val path: String,
     val valueType: String? = null,
 )
+
+@Serializable
+enum class LocalizedField {
+    Value,
+    Label,
+    Placeholder,
+    Title,
+    Alt,
+    ConfirmLabel,
+    CancelLabel,
+}
+
+@Serializable
+sealed interface LocalizedText {
+    val fallback: String
+
+    @Serializable
+    @SerialName("literal")
+    data class Literal(
+        val value: String,
+    ) : LocalizedText {
+        override val fallback: String get() = value
+    }
+
+    @Serializable
+    @SerialName("resource")
+    data class Resource(
+        val key: String,
+        override val fallback: String,
+        val namespace: String? = null,
+    ) : LocalizedText
+}
 
 @Serializable
 data class SourceLocation(
@@ -231,7 +382,12 @@ sealed interface NodeKind {
     ) : NodeKind
 }
 
-@Serializable data class PickerOption(val label: String, val value: String)
+@Serializable
+data class PickerOption(
+    val label: String,
+    val value: String,
+    val localizedLabel: LocalizedText? = null,
+)
 @Serializable enum class TextStyle { Display, Headline, Title, Body, Caption, Footnote }
 @Serializable enum class InputType { Text, Email, Number, Phone, Url, Password }
 @Serializable enum class ReturnKey { Done, Go, Search, Send, Next }

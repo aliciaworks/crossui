@@ -62,10 +62,16 @@ The showcase module owns this task, so generation happens as part of its `build`
 Generated native source is checked in to make platform review and integration
 straightforward.
 
+Normal consumer output remains under `build/generated/crossui` and is ignored.
+Only `hosts/*/generated` is checked in because those files are deterministic
+review fixtures compiled by CI.
+
 For an existing KMP repository, use the `dev.crossui` Gradle plugin with a
 compiled `UiDocumentProvider`. It emits separate target directories and does
 not require JSON in application code. See
 [`docs/existing-kmp-integration.md`](docs/existing-kmp-integration.md).
+Localization supports native project resources and compile-time custom
+resolvers; see [`docs/localization.md`](docs/localization.md).
 
 ## Compiler CLI
 
@@ -109,6 +115,8 @@ native escape hatch is supplied. Typed hints such as `iosHaptic`,
   interpreter.
 - Typed SwiftUI output includes an Observation-backed connected model; typed
   WinUI output includes compiled XAML plus an `INotifyPropertyChanged` adapter.
+- Apple-owned preferences can explicitly generate `@AppStorage`; shared
+  business settings retain the KMP `SettingsStore` as their source of truth.
 - `crossuiDoctor`, `verifyCrossUi`, `explain`, and `diff` provide deterministic
   diagnostics for developers and coding agents.
 

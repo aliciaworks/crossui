@@ -37,7 +37,14 @@ private fun generate(options: List<String>) {
     val typeName = options.valueAfter("--name") ?: "CrossUiGenerated"
     val registry = options.nativeViews()
 
-    CrossUiCompiler.write(document, output, targets, typeName, registry)
+    CrossUiCompiler.write(
+        document,
+        output,
+        targets,
+        typeName,
+        registry,
+        options.localization(),
+    )
         .forEach { println(it.toAbsolutePath()) }
 }
 
@@ -57,6 +64,7 @@ private fun doctor(options: List<String>) {
             targets = targets,
             typeName = options.valueAfter("--name") ?: "CrossUiGenerated",
             nativeViews = registry,
+            localization = options.localization(),
         )
     }.onFailure {
         issues += requireNotNull(it.message)
@@ -86,6 +94,7 @@ private fun explain(options: List<String>) {
         targets = setOf(target),
         typeName = options.valueAfter("--name") ?: "CrossUiGenerated",
         nativeViews = options.nativeViews(),
+        localization = options.localization(),
     )
     val source = sources.firstOrNull { generated ->
         generated.mappings.any { it.nodeKey == key.value }
@@ -123,6 +132,7 @@ private fun verify(options: List<String>) {
         targets = options.targets(),
         typeName = options.valueAfter("--name") ?: "CrossUiGenerated",
         nativeViews = options.nativeViews(),
+        localization = options.localization(),
     )
     val stale = sources.filter { generated ->
         val path = output.resolve(generated.relativePath)
@@ -167,6 +177,22 @@ private fun List<String>.nativeViews(): NativeViewRegistry {
         }
     }
 }
+
+private fun List<String>.localization(): LocalizationRegistry =
+    LocalizationRegistry.build {
+        androidResources(valueAfter("--android-resource-class") ?: "R")
+        valuesAfter("--localization").forEach { registration ->
+            val (target, templateValue) = registration.split('=', limit = 2)
+                .takeIf { it.size == 2 }
+                ?: error("Localization resolver must use target=template syntax.")
+            val template = if (templateValue.startsWith("@")) {
+                Files.readString(Path.of(templateValue.drop(1)))
+            } else {
+                templateValue
+            }
+            register(ExportTarget.parse(target), template)
+        }
+    }
 
 private fun List<String>.required(flag: String): String =
     valueAfter(flag) ?: error("Missing $flag <value>")

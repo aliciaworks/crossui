@@ -27,22 +27,37 @@ class ChildrenBuilder {
 fun ui(block: ChildrenBuilder.() -> Unit): List<Node> =
     ChildrenBuilder().apply(block).build()
 
-fun document(root: Node, theme: Theme = Theme()): UiDocument =
-    UiDocument(root = root, theme = theme).also(UiDocument::validate)
+fun document(
+    root: Node,
+    theme: Theme = Theme(),
+    settings: List<SettingDeclaration> = emptyList(),
+): UiDocument =
+    UiDocument(root = root, theme = theme, settings = settings)
+        .also(UiDocument::validate)
 
 inline fun <reified State : Any, reified Action : Any> typedDocument(
     root: Node,
     theme: Theme = Theme(),
     stateType: String = requireNotNull(State::class.simpleName),
     actionType: String = requireNotNull(Action::class.simpleName),
+    settings: List<SettingDeclaration> = emptyList(),
 ): UiDocument = UiDocument(
     root = root,
     theme = theme,
     stateType = stateType,
     actionType = actionType,
+    settings = settings,
 ).also(UiDocument::validate)
 
 data class StateBinding<T>(val reference: BindingRef)
+
+fun localized(
+    key: String,
+    fallback: String,
+    namespace: String? = null,
+): LocalizedText = LocalizedText.Resource(key, fallback, namespace)
+
+fun literal(value: String): LocalizedText = LocalizedText.Literal(value)
 
 inline fun <reified State : Any, reified Value> bind(
     property: KProperty1<State, Value>,
@@ -52,6 +67,42 @@ inline fun <reified State : Any, reified Value> bind(
         valueType = Value::class.simpleName,
     ),
 )
+
+fun <Value> appStorage(
+    name: String,
+    default: Value,
+): SettingKey<Value> = SettingKey(
+    name = name,
+    default = default,
+    storage = SettingStorage.Preferences,
+    ownership = SettingOwnership.PlatformUi,
+)
+
+inline fun <State : Any, reified Value> setting(
+    key: SettingKey<Value>,
+    state: KProperty1<State, Value>,
+    onChange: String,
+): SettingDeclaration {
+    val valueType = when (Value::class.simpleName) {
+        "Boolean" -> SettingValueType.Boolean
+        "String" -> SettingValueType.String
+        "Int" -> SettingValueType.Int
+        "Double" -> SettingValueType.Double
+        else -> error(
+            "Unsupported setting type ${Value::class.simpleName}; " +
+                "supported types are Boolean, String, Int, and Double.",
+        )
+    }
+    return SettingDeclaration(
+        key = key.name,
+        statePath = state.name,
+        valueType = valueType,
+        defaultValue = key.default.toString(),
+        storage = key.storage,
+        ownership = key.ownership,
+        onChange = onChange,
+    )
+}
 
 fun <Action : Any> event(action: Action): String =
     requireNotNull(action::class.simpleName) {
@@ -74,6 +125,16 @@ private fun String.toSnakeCase(): String =
 fun text(key: String, value: String) =
     Node(NodeKey(key), NodeKind.Text(value))
 
+fun text(
+    key: String,
+    value: LocalizedText,
+    style: TextStyle = TextStyle.Body,
+) = Node(
+    NodeKey(key),
+    NodeKind.Text(value.fallback, style),
+    localizedText = mapOf(LocalizedField.Value to value),
+)
+
 fun text(key: String, value: StateBinding<String>) =
     text(key, "").withBinding("value", value)
 
@@ -81,14 +142,22 @@ fun text(key: String, value: String, style: TextStyle) =
     Node(NodeKey(key), NodeKind.Text(value, style))
 
 fun display(key: String, value: String) = text(key, value, TextStyle.Display)
+fun display(key: String, value: LocalizedText) = text(key, value, TextStyle.Display)
 fun headline(key: String, value: String) = text(key, value, TextStyle.Headline)
+fun headline(key: String, value: LocalizedText) = text(key, value, TextStyle.Headline)
 
 fun title(key: String, value: String) =
     text(key, value, TextStyle.Title)
         .accessibility(value, SemanticRole.Header)
 
+fun title(key: String, value: LocalizedText) =
+    text(key, value, TextStyle.Title)
+        .accessibility(value.fallback, SemanticRole.Header)
+
 fun caption(key: String, value: String) = text(key, value, TextStyle.Caption)
+fun caption(key: String, value: LocalizedText) = text(key, value, TextStyle.Caption)
 fun footnote(key: String, value: String) = text(key, value, TextStyle.Footnote)
+fun footnote(key: String, value: LocalizedText) = text(key, value, TextStyle.Footnote)
 
 fun button(
     key: String,
@@ -96,6 +165,17 @@ fun button(
     action: String,
     variant: ButtonVariant = ButtonVariant.Primary,
 ) = Node(NodeKey(key), NodeKind.Button(label, action, variant))
+
+fun button(
+    key: String,
+    label: LocalizedText,
+    action: String,
+    variant: ButtonVariant = ButtonVariant.Primary,
+) = Node(
+    NodeKey(key),
+    NodeKind.Button(label.fallback, action, variant),
+    localizedText = mapOf(LocalizedField.Label to label),
+)
 
 fun secondaryButton(key: String, label: String, action: String) =
     button(key, label, action, ButtonVariant.Secondary)
@@ -225,6 +305,13 @@ fun form(key: String, block: ChildrenBuilder.() -> Unit) = form(key, ui(block))
 fun loading(key: String, label: String? = null) =
     Node(NodeKey(key), NodeKind.Loading(label))
 
+fun loading(key: String, label: LocalizedText) =
+    Node(
+        NodeKey(key),
+        NodeKind.Loading(label.fallback),
+        localizedText = mapOf(LocalizedField.Label to label),
+    )
+
 fun tabNavigation(key: String, active: String, routes: List<Node>) =
     Node(NodeKey(key), NodeKind.Navigation(active, NavigationMode.Tab), children = routes)
 
@@ -240,6 +327,17 @@ fun route(key: String, title: String, children: List<Node>) =
 fun route(key: String, title: String, block: ChildrenBuilder.() -> Unit) =
     route(key, title, ui(block))
 
+fun route(key: String, title: LocalizedText, children: List<Node>) =
+    Node(
+        NodeKey(key),
+        NodeKind.Route(title.fallback),
+        children = children,
+        localizedText = mapOf(LocalizedField.Title to title),
+    )
+
+fun route(key: String, title: LocalizedText, block: ChildrenBuilder.() -> Unit) =
+    route(key, title, ui(block))
+
 fun fullscreenRoute(key: String, title: String, children: List<Node>) =
     Node(NodeKey(key), NodeKind.Route(title, respectSafeArea = false), children = children)
 
@@ -249,6 +347,24 @@ fun toggle(key: String, label: String?, checked: Boolean, onChange: String) =
 fun toggle(
     key: String,
     label: String?,
+    checked: StateBinding<Boolean>,
+    onChange: String,
+) = toggle(key, label, false, onChange).withBinding("checked", checked)
+
+fun toggle(
+    key: String,
+    label: LocalizedText,
+    checked: Boolean,
+    onChange: String,
+) = Node(
+    NodeKey(key),
+    NodeKind.Toggle(label.fallback, checked, onChange),
+    localizedText = mapOf(LocalizedField.Label to label),
+)
+
+fun toggle(
+    key: String,
+    label: LocalizedText,
     checked: StateBinding<Boolean>,
     onChange: String,
 ) = toggle(key, label, false, onChange).withBinding("checked", checked)
@@ -303,6 +419,8 @@ fun picker(
 ) = picker(key, "", options, onChange).withBinding("selected", selected)
 
 fun pickerOption(label: String, value: String) = PickerOption(label, value)
+fun pickerOption(label: LocalizedText, value: String) =
+    PickerOption(label.fallback, value, localizedLabel = label)
 
 fun datePicker(
     key: String,
@@ -331,6 +449,24 @@ fun checkbox(
     onChange: String,
 ) = checkbox(key, label, false, onChange).withBinding("checked", checked)
 
+fun checkbox(
+    key: String,
+    label: LocalizedText,
+    checked: Boolean,
+    onChange: String,
+) = Node(
+    NodeKey(key),
+    NodeKind.Checkbox(label.fallback, checked, onChange),
+    localizedText = mapOf(LocalizedField.Label to label),
+)
+
+fun checkbox(
+    key: String,
+    label: LocalizedText,
+    checked: StateBinding<Boolean>,
+    onChange: String,
+) = checkbox(key, label, false, onChange).withBinding("checked", checked)
+
 fun divider(key: String) = Node(NodeKey(key), NodeKind.Divider)
 fun card(key: String, children: List<Node>) =
     Node(NodeKey(key), NodeKind.Card, children = children)
@@ -342,80 +478,17 @@ fun chip(
     onDismiss: String? = null,
 ) = Node(NodeKey(key), NodeKind.Chip(label, variant, onDismiss))
 
+fun chip(
+    key: String,
+    label: LocalizedText,
+    variant: ChipVariant = ChipVariant.Input,
+    onDismiss: String? = null,
+) = Node(
+    NodeKey(key),
+    NodeKind.Chip(label.fallback, variant, onDismiss),
+    localizedText = mapOf(LocalizedField.Label to label),
+)
+
 fun inputChip(key: String, label: String) = chip(key, label)
 fun filterChip(key: String, label: String, onDismiss: String? = null) =
     chip(key, label, ChipVariant.Filter, onDismiss)
-
-fun Node.accessibility(
-    label: String,
-    role: SemanticRole,
-    hint: String? = semantics.hint,
-) = copy(semantics = semantics.copy(label = label, role = role, hint = hint))
-
-fun Node.fromSource(file: String, line: Int? = null, column: Int? = null) =
-    copy(source = SourceLocation(file, line, column))
-
-fun Node.visibleWhen(binding: StateBinding<Boolean>) =
-    withBinding("visible", binding)
-
-fun Node.enabledWhen(binding: StateBinding<Boolean>) =
-    withBinding("enabled", binding)
-
-private fun <T> Node.withBinding(field: String, binding: StateBinding<T>) =
-    copy(bindings = bindings + (field to binding.reference))
-
-fun Node.disabled() = copy(semantics = semantics.copy(enabled = false))
-
-fun Node.irreversible() = copy(
-    semantics = semantics.copy(
-        traits = semantics.traits.copy(irreversible = true),
-    ),
-)
-
-fun Node.frequent() = copy(
-    semantics = semantics.copy(
-        traits = semantics.traits.copy(frequency = ActionFrequency.Frequent),
-    ),
-)
-
-fun Node.critical() = copy(
-    semantics = semantics.copy(
-        traits = semantics.traits.copy(importance = Importance.Critical),
-    ),
-)
-
-private fun Node.extension(extension: PlatformExtension) =
-    copy(extensions = extensions + extension)
-
-fun Node.iosHaptic(type: HapticType) =
-    extension(PlatformExtension.Ios(IosExtension.Haptic(type)))
-
-fun Node.iosPresentation(style: PresentationStyle) =
-    extension(PlatformExtension.Ios(IosExtension.Presentation(style)))
-
-fun Node.iosSwipeAction(action: String) =
-    extension(PlatformExtension.Ios(IosExtension.SwipeAction(action)))
-
-fun Node.ipadosMulticolumn(columns: UInt) =
-    extension(PlatformExtension.IpadOs(IpadOsExtension.MultiColumn(columns)))
-
-fun Node.ipadosSidebar() =
-    extension(PlatformExtension.IpadOs(IpadOsExtension.Sidebar))
-
-fun Node.watchCrown(sensitivity: CrownSensitivity) =
-    extension(PlatformExtension.WatchOs(WatchOsExtension.DigitalCrown(sensitivity)))
-
-fun Node.watchGlance(priority: GlancePriority) =
-    extension(PlatformExtension.WatchOs(WatchOsExtension.Glance(priority)))
-
-fun Node.macShortcut(key: String, modifiers: List<KeyModifier>) =
-    extension(PlatformExtension.MacOs(MacOsExtension.KeyboardShortcut(key, modifiers)))
-
-fun Node.macToolbar(itemId: String) =
-    extension(PlatformExtension.MacOs(MacOsExtension.ToolbarItem(itemId)))
-
-fun Node.androidElevation(dp: Float) =
-    extension(PlatformExtension.Android(AndroidExtension.Elevation(dp)))
-
-fun Node.windowsCorner(radius: Float) =
-    extension(PlatformExtension.Windows(WindowsExtension.CornerRadius(radius)))

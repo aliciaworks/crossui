@@ -188,6 +188,37 @@ Windows host can consume a Kotlin object directly. Existing WinUI projects can
 retain their current Kotlin bridge, RPC client, or platform service and connect
 it to the small generated adapter.
 
+## Apple preferences and ownership
+
+Use `appStorage` when an Apple-facing preference should remain readable and
+native in generated SwiftUI:
+
+```kotlin
+val darkMode = appStorage("appearance.dark_mode", false)
+
+val declaration = setting(
+    darkMode,
+    SettingsState::darkMode,
+    event("dark_mode_changed") {
+        SettingsAction.DarkModeChanged(it.toBoolean())
+    },
+)
+```
+
+Add the declaration to `typedDocument(settings = listOf(declaration))`.
+SwiftUI then emits `@AppStorage`, initializes KMP state from the stored value,
+persists reducer-driven state changes, and uses equality guards to prevent
+feedback loops.
+
+Ownership is explicit:
+
+- `PlatformUi` is produced by `appStorage` and generates the Apple wrapper.
+- `SharedState` is the safe default for settings owned by KMP business logic.
+- `External` is reserved for an existing project-owned settings service.
+
+Only `Preferences` can use `PlatformUi`. Secure values and lifecycle state must
+use their dedicated adapters and fail validation if declared as `appStorage`.
+
 ## End-to-end consumer fixture
 
 The standalone fixture uses only published Maven Local artifacts and packages a

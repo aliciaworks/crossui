@@ -12,10 +12,12 @@ private data class WinUiFixtureState(
     val status: String = "",
     val isSubmitting: Boolean = false,
     val canSubmit: Boolean = true,
+    val darkMode: Boolean = false,
 )
 
 private sealed interface WinUiFixtureAction {
     data class EmailChanged(val value: String) : WinUiFixtureAction
+    data class DarkModeChanged(val value: Boolean) : WinUiFixtureAction
     data object Submit : WinUiFixtureAction
 }
 
@@ -92,7 +94,10 @@ fun showcaseDocument(): UiDocument = document(
 
 private fun winUiFixtureDocument(): UiDocument =
     typedDocument<WinUiFixtureState, WinUiFixtureAction>(
-        route("fixture", "Typed binding fixture") {
+        route(
+            "fixture",
+            localized("fixture.title", "Typed binding fixture"),
+        ) {
             +vstack("fixture-content") {
                 +emailInput(
                     "fixture-email",
@@ -105,13 +110,28 @@ private fun winUiFixtureDocument(): UiDocument =
                     .visibleWhen(bind(WinUiFixtureState::isSubmitting))
                 +button(
                     "fixture-submit",
-                    "Continue",
+                    localized("fixture.continue", "Continue"),
                     event(WinUiFixtureAction.Submit),
                 ).enabledWhen(bind(WinUiFixtureState::canSubmit))
+                +toggle(
+                    "fixture-dark-mode",
+                    localized("fixture.dark_mode", "Dark Mode"),
+                    bind(WinUiFixtureState::darkMode),
+                    event("dark_mode_changed") {
+                        WinUiFixtureAction.DarkModeChanged(it.toBoolean())
+                    },
+                )
             }
         },
         stateType = "dev.crossui.showcase.WinUiFixtureState",
         actionType = "dev.crossui.showcase.WinUiFixtureAction",
+        settings = listOf(
+            setting(
+                appStorage("appearance.dark_mode", false),
+                WinUiFixtureState::darkMode,
+                "dark_mode_changed",
+            ),
+        ),
     )
 
 fun main(args: Array<String>) {
@@ -121,7 +141,7 @@ fun main(args: Array<String>) {
         val sources = CrossUiCompiler.generate(document, typeName = "CrossUiShowcase") +
             CrossUiCompiler.generate(
                 winUiFixtureDocument(),
-                targets = setOf(ExportTarget.WinUi3),
+                targets = setOf(ExportTarget.SwiftUi, ExportTarget.WinUi3),
                 typeName = "CrossUiTypedFixture",
             )
         val mappedSources = sources.map { source ->
