@@ -4,6 +4,7 @@ package dev.crossui.dsl
 
 import dev.crossui.ir.*
 import kotlinx.serialization.json.JsonElement
+import kotlin.reflect.KProperty1
 
 @DslMarker
 annotation class CrossUiDsl
@@ -28,6 +29,47 @@ fun ui(block: ChildrenBuilder.() -> Unit): List<Node> =
 
 fun document(root: Node, theme: Theme = Theme()): UiDocument =
     UiDocument(root = root, theme = theme).also(UiDocument::validate)
+
+inline fun <reified State : Any, reified Action : Any> typedDocument(
+    root: Node,
+    theme: Theme = Theme(),
+    stateType: String = requireNotNull(State::class.simpleName),
+    actionType: String = requireNotNull(Action::class.simpleName),
+): UiDocument = UiDocument(
+    root = root,
+    theme = theme,
+    stateType = stateType,
+    actionType = actionType,
+).also(UiDocument::validate)
+
+data class StateBinding<T>(val reference: BindingRef)
+
+inline fun <reified State : Any, reified Value> bind(
+    property: KProperty1<State, Value>,
+): StateBinding<Value> = StateBinding(
+    BindingRef(
+        path = property.name,
+        valueType = Value::class.simpleName,
+    ),
+)
+
+fun <Action : Any> event(action: Action): String =
+    requireNotNull(action::class.simpleName) {
+        "Actions must have a stable class name."
+    }.toSnakeCase()
+
+fun <Action : Any> event(
+    name: String,
+    factory: (String) -> Action,
+): String {
+    @Suppress("UNUSED_VARIABLE")
+    val typeCheck = factory
+    require(name.isNotBlank()) { "Event name cannot be blank." }
+    return name
+}
+
+private fun String.toSnakeCase(): String =
+    replace(Regex("([a-z0-9])([A-Z])"), "$1_$2").lowercase()
 
 fun text(key: String, value: String) =
     Node(NodeKey(key), NodeKind.Text(value))
@@ -71,11 +113,50 @@ fun input(
     NodeKind.Input(value, placeholder, onChange, secure, inputType, returnKey),
 )
 
+fun input(
+    key: String,
+    value: StateBinding<String>,
+    onChange: String,
+    placeholder: String? = null,
+    secure: Boolean = false,
+    inputType: InputType = InputType.Text,
+    returnKey: ReturnKey? = null,
+) = input(
+    key = key,
+    value = "",
+    onChange = onChange,
+    placeholder = placeholder,
+    secure = secure,
+    inputType = inputType,
+    returnKey = returnKey,
+).withBinding("value", value)
+
 fun secureInput(key: String, value: String, placeholder: String?, onChange: String) =
     input(key, value, onChange, placeholder, secure = true, inputType = InputType.Password)
 
+fun secureInput(
+    key: String,
+    value: StateBinding<String>,
+    placeholder: String?,
+    onChange: String,
+) = input(
+    key,
+    value,
+    onChange,
+    placeholder,
+    secure = true,
+    inputType = InputType.Password,
+)
+
 fun emailInput(key: String, value: String, placeholder: String?, onChange: String) =
     input(key, value, onChange, placeholder, inputType = InputType.Email)
+
+fun emailInput(
+    key: String,
+    value: StateBinding<String>,
+    placeholder: String?,
+    onChange: String,
+) = input(key, value, onChange, placeholder, inputType = InputType.Email)
 
 fun numberInput(key: String, value: String, placeholder: String?, onChange: String) =
     input(key, value, onChange, placeholder, inputType = InputType.Number)
@@ -162,6 +243,13 @@ fun fullscreenRoute(key: String, title: String, children: List<Node>) =
 fun toggle(key: String, label: String?, checked: Boolean, onChange: String) =
     Node(NodeKey(key), NodeKind.Toggle(label, checked, onChange))
 
+fun toggle(
+    key: String,
+    label: String?,
+    checked: StateBinding<Boolean>,
+    onChange: String,
+) = toggle(key, label, false, onChange).withBinding("checked", checked)
+
 fun image(key: String, src: String, alt: String? = null) =
     Node(NodeKey(key), NodeKind.Image(src, alt))
 
@@ -192,8 +280,24 @@ fun slider(
     onChange: String,
 ) = Node(NodeKey(key), NodeKind.Slider(value, min, max, step, onChange))
 
+fun slider(
+    key: String,
+    value: StateBinding<Double>,
+    min: Double,
+    max: Double,
+    step: Double? = null,
+    onChange: String,
+) = slider(key, 0.0, min, max, step, onChange).withBinding("value", value)
+
 fun picker(key: String, selected: String, options: List<PickerOption>, onChange: String) =
     Node(NodeKey(key), NodeKind.Picker(selected, options, onChange))
+
+fun picker(
+    key: String,
+    selected: StateBinding<String>,
+    options: List<PickerOption>,
+    onChange: String,
+) = picker(key, "", options, onChange).withBinding("selected", selected)
 
 fun pickerOption(label: String, value: String) = PickerOption(label, value)
 
@@ -204,11 +308,25 @@ fun datePicker(
     onChange: String,
 ) = Node(NodeKey(key), NodeKind.DatePicker(value, mode, onChange))
 
+fun datePicker(
+    key: String,
+    value: StateBinding<String?>,
+    mode: DatePickerMode = DatePickerMode.DateTime,
+    onChange: String,
+) = datePicker(key, null, mode, onChange).withBinding("value", value)
+
 fun platformView(key: String, platform: Platform, name: String, payload: JsonElement) =
     Node(NodeKey(key), NodeKind.PlatformView(platform, name, payload))
 
 fun checkbox(key: String, label: String?, checked: Boolean, onChange: String) =
     Node(NodeKey(key), NodeKind.Checkbox(label, checked, onChange))
+
+fun checkbox(
+    key: String,
+    label: String?,
+    checked: StateBinding<Boolean>,
+    onChange: String,
+) = checkbox(key, label, false, onChange).withBinding("checked", checked)
 
 fun divider(key: String) = Node(NodeKey(key), NodeKind.Divider)
 fun card(key: String, children: List<Node>) =
@@ -230,6 +348,12 @@ fun Node.accessibility(
     role: SemanticRole,
     hint: String? = semantics.hint,
 ) = copy(semantics = semantics.copy(label = label, role = role, hint = hint))
+
+fun Node.fromSource(file: String, line: Int? = null, column: Int? = null) =
+    copy(source = SourceLocation(file, line, column))
+
+private fun <T> Node.withBinding(field: String, binding: StateBinding<T>) =
+    copy(bindings = bindings + (field to binding.reference))
 
 fun Node.disabled() = copy(semantics = semantics.copy(enabled = false))
 

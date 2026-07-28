@@ -56,6 +56,10 @@ fun createLoginApp() = DocumentStore(
     ::loginDocument,
 )
 
+object LoginUiProvider : UiDocumentProvider {
+    override fun document(): UiDocument = loginDocument(LoginState())
+}
+
 fun loginDocument(state: LoginState): UiDocument {
     val active = when (state.screen) {
         Screen.Login -> "login"
@@ -67,7 +71,7 @@ fun loginDocument(state: LoginState): UiDocument {
         ?.replace("project-", "Project ")
         ?: "Project"
 
-    return document(
+    return typedDocument<LoginState, LoginAction>(
         tabNavigation(
             "app-navigation",
             active,
@@ -78,12 +82,16 @@ fun loginDocument(state: LoginState): UiDocument {
                         +form("login-form") {
                             +emailInput(
                                 "email",
-                                state.email,
+                                bind(LoginState::email),
                                 "Email address",
-                                "email_changed",
+                                event("email_changed") { LoginAction.EmailChanged(it) },
                             ).accessibility("Email address", SemanticRole.TextField)
                             state.message?.let { +text("message", it) }
-                            +button("submit", "Continue", "submit")
+                            +button(
+                                "submit",
+                                "Continue",
+                                event(LoginAction.Submit),
+                            )
                                 .accessibility("Continue", SemanticRole.Button)
                         }
                     }
@@ -92,7 +100,9 @@ fun loginDocument(state: LoginState): UiDocument {
                     +title("projects-heading", "Choose a project")
                     +selectableList(
                         "projects-list",
-                        "project_selected",
+                        event("project_selected") {
+                            LoginAction.ProjectSelected(it)
+                        },
                         listOf(
                             text("project-alpha", "Project Alpha"),
                             text("project-beta", "Project Beta"),
@@ -103,7 +113,11 @@ fun loginDocument(state: LoginState): UiDocument {
                 route("detail", detailTitle) {
                     +title("detail-heading", detailTitle)
                     +text("detail-copy", "This screen is selected by shared Kotlin state.")
-                    +button("back", "Back to projects", "back")
+                    +button(
+                        "back",
+                        "Back to projects",
+                        event(LoginAction.Back),
+                    )
                 },
             ),
         ),

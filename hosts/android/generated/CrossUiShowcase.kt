@@ -13,40 +13,65 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrossUiShowcase(dispatch: (action: String, value: String?) -> Unit) {
+    // crossui-node:app
     Column {
         NavigationBar {
             NavigationBarItem(selected = true, onClick = { dispatch("navigate", "login") }, icon = {}, label = { Text("Sign in") })
             NavigationBarItem(selected = false, onClick = { dispatch("navigate", "settings") }, icon = {}, label = { Text("Settings") })
         }
+        // crossui-node:login
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // crossui-node:login-content
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // crossui-node:heading
                 Text("Welcome")
+                // crossui-node:logo
                 AsyncImage(model = "https://example.com/logo.png", contentDescription = "App logo")
+                // crossui-node:email
                 OutlinedTextField(value = "", onValueChange = { dispatch("email_changed", it) }, label = { Text("you@example.com") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+                // crossui-node:password
                 OutlinedTextField(value = "", onValueChange = { dispatch("password_changed", it) }, label = { Text("Password") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), visualTransformation = PasswordVisualTransformation())
+                // crossui-node:search
                 OutlinedTextField(value = "", onValueChange = { dispatch("search_changed", it) }, label = { Text("Search…") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+                // crossui-node:remember
                 Row { Switch(checked = false, onCheckedChange = { dispatch("remember_changed", it.toString()) }, enabled = true); Text("Remember me") }
+                // crossui-node:volume-label
                 Text("Volume: 50%")
+                // crossui-node:volume
                 Slider(value = 0.5f, onValueChange = { dispatch("volume_changed", it.toString()) }, valueRange = 0.0f..1.0f, enabled = true)
+                // crossui-node:terms
                 Row { Checkbox(checked = false, onCheckedChange = { dispatch("terms_changed", it.toString()) }, enabled = true); Text("I agree to the Terms") }
+                // crossui-node:chips
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // crossui-node:ios
                     AssistChip(onClick = {}, label = { Text("iOS") })
+                    // crossui-node:android
                     AssistChip(onClick = {}, label = { Text("Android") })
+                    // crossui-node:active
                     InputChip(selected = true, onClick = { dispatch("remove_active", null) }, label = { Text("Active") })
                 }
+                // crossui-node:separator
                 HorizontalDivider()
+                // crossui-node:language
                 Column { Text("English"); TextButton(onClick = { dispatch("language_changed", "en") }) { Text("English") }; TextButton(onClick = { dispatch("language_changed", "zh") }) { Text("中文") }; TextButton(onClick = { dispatch("language_changed", "ja") }) { Text("日本語") } }
+                // crossui-node:actions
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // crossui-node:submit
                     Button(onClick = { dispatch("submit", null) }, enabled = true) { Text("Continue") }
+                    // crossui-node:delete
                     Button(onClick = { dispatch("show_delete", null) }, enabled = true) { Text("Delete") }
                 }
+                // crossui-node:summary
                 Card { Column(Modifier.padding(16.dp)) {
+                        // crossui-node:summary-copy
                         Text("Generated native controls")
                     }
                 }
+                // crossui-node:legal
                 Text("By continuing you agree to our Terms")
             }
         }

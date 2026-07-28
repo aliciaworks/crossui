@@ -8,12 +8,10 @@ import kotlin.test.assertTrue
 
 class LoginAppTest {
     @Test
-    fun editingInputCreatesLeafPatch() {
+    fun editingBoundInputUpdatesSharedStateWithoutRebuildingUi() {
         val app = createLoginApp()
         val update = app.dispatch(LoginAction.EmailChanged("ada@example.com"))
-        assertEquals(1, update.patches.size)
-        assertIs<DiffOp.Update>(update.patches.single())
-        assertEquals("email", update.patches.single().key.value)
+        assertTrue(update.patches.isEmpty())
     }
 
     @Test

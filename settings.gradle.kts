@@ -1,5 +1,6 @@
 pluginManagement {
     repositories {
+        google()
         gradlePluginPortal()
         mavenCentral()
     }
@@ -7,6 +8,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        google()
         mavenCentral()
     }
 }
@@ -19,6 +21,7 @@ include(
     ":runtime",
     ":legalizer",
     ":compiler",
+    ":gradle-plugin",
     ":examples:login-app",
     ":examples:showcase",
 )

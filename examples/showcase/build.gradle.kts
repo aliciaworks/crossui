@@ -31,6 +31,7 @@ val generateNativeUi = tasks.register<JavaExec>("generateNativeUi") {
         generatedRoot.file("ios/generated/CrossUiShowcase.swift"),
         generatedRoot.file("android/generated/CrossUiShowcase.kt"),
         generatedRoot.file("windows/generated/CrossUiShowcase.xaml"),
+        generatedRoot.file("crossui-map.json"),
     )
 }
 

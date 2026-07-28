@@ -1,9 +1,17 @@
 plugins {
     kotlin("multiplatform")
+    id("com.android.kotlin.multiplatform.library")
+    `maven-publish`
 }
 
 kotlin {
     jvm()
+    android {
+        namespace = "dev.crossui.runtime"
+        compileSdk = 35
+        minSdk = 24
+        withHostTest {}
+    }
     js {
         nodejs()
     }
@@ -22,9 +30,11 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":ui-ir"))
+            api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
         }
     }
 }

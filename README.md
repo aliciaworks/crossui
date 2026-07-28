@@ -24,6 +24,7 @@ The modules intentionally have different responsibilities:
 - `ui-dsl`: the portable Kotlin DSL and explicit platform escape hatches.
 - `legalizer`: JVM validation and platform/HIG policy derivation.
 - `compiler`: JVM CLI and native source backends.
+- `gradle-plugin`: reusable generation, doctor, and stale-output tasks.
 - `runtime`: small KMP state/event/binding/navigation/environment library.
 - `examples/login-app`: shared state and business-logic example.
 - `examples/showcase`: DSL input compiled into native host source.
@@ -59,6 +60,11 @@ The showcase module owns this task, so generation happens as part of its `build`
 Generated native source is checked in to make platform review and integration
 straightforward.
 
+For an existing KMP repository, use the `dev.crossui` Gradle plugin with a
+compiled `UiDocumentProvider`. It emits separate target directories and does
+not require JSON in application code. See
+[`docs/existing-kmp-integration.md`](docs/existing-kmp-integration.md).
+
 ## Compiler CLI
 
 The standalone JVM compiler accepts a serialized semantic IR document:
@@ -88,6 +94,16 @@ val settings = document(
 Platform-specific nodes remain explicit and fail generation until the relevant
 native escape hatch is supplied. Typed hints such as `iosHaptic`,
 `androidElevation`, and `macShortcut` are validated against target profiles.
+
+## Agent and async support
+
+- `bind(State::property)` records typed state bindings.
+- `event(Action.Save)` and typed value factories reduce stringly-typed events.
+- Generated files contain stable node markers and source-map manifests.
+- `StateFlow`, `Async<T>`, structured effect handling, settings contracts, and
+  lifecycle cancellation live in the KMP runtime.
+- `crossuiDoctor`, `verifyCrossUi`, `explain`, and `diff` provide deterministic
+  diagnostics for developers and coding agents.
 
 ## License
 

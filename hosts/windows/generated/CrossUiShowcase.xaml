@@ -4,37 +4,61 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer>
+        <!-- crossui-node:app -->
         <NavigationView PaneDisplayMode="Top">
             <NavigationView.Content>
+                <!-- crossui-node:login -->
                 <StackPanel Spacing="16">
+                    <!-- crossui-node:login-content -->
                     <StackPanel Orientation="Vertical" Spacing="16">
+                        <!-- crossui-node:heading -->
                         <TextBlock Text="Welcome" />
+                        <!-- crossui-node:logo -->
                         <Image Source="https://example.com/logo.png" AutomationProperties.Name="App logo" />
+                        <!-- crossui-node:email -->
                         <TextBox Text="" PlaceholderText="you@example.com" Tag="email_changed" AutomationProperties.Name="Email" />
+                        <!-- crossui-node:password -->
                         <PasswordBox Password="" PlaceholderText="Password" Tag="password_changed" AutomationProperties.Name="Password" />
+                        <!-- crossui-node:search -->
                         <TextBox Text="" PlaceholderText="Search…" Tag="search_changed" />
+                        <!-- crossui-node:remember -->
                         <ToggleSwitch Header="Remember me" IsOn="false" Tag="remember_changed" />
+                        <!-- crossui-node:volume-label -->
                         <TextBlock Text="Volume: 50%" />
+                        <!-- crossui-node:volume -->
                         <Slider Value="0.5" Minimum="0.0" Maximum="1.0" StepFrequency="0.05" Tag="volume_changed" AutomationProperties.Name="Volume" />
+                        <!-- crossui-node:terms -->
                         <CheckBox Content="I agree to the Terms" IsChecked="false" Tag="terms_changed" />
+                        <!-- crossui-node:chips -->
                         <StackPanel Orientation="Horizontal" Spacing="16">
+                            <!-- crossui-node:ios -->
                             <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="iOS" /></Border>
+                            <!-- crossui-node:android -->
                             <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="Android" /></Border>
+                            <!-- crossui-node:active -->
                             <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="Active" /></Border>
                         </StackPanel>
+                        <!-- crossui-node:separator -->
                         <Border Height="1" Background="{ThemeResource SystemControlForegroundBaseLowBrush}" />
+                        <!-- crossui-node:language -->
                         <ComboBox SelectedValue="en" Tag="language_changed">
                             <ComboBoxItem Content="English" Tag="en" />
                             <ComboBoxItem Content="中文" Tag="zh" />
                             <ComboBoxItem Content="日本語" Tag="ja" />
                         </ComboBox>
+                        <!-- crossui-node:actions -->
                         <StackPanel Orientation="Horizontal" Spacing="16">
+                            <!-- crossui-node:submit -->
                             <Button Content="Continue" Tag="submit" AutomationProperties.Name="Continue" />
+                            <!-- crossui-node:delete -->
                             <Button Content="Delete" Tag="show_delete" AutomationProperties.Name="Delete account" />
                         </StackPanel>
+                        <!-- crossui-node:summary -->
                         <Border CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <!-- crossui-node:summary-copy -->
                             <TextBlock Text="Generated native controls" />
                         </Border>
+                        <!-- crossui-node:legal -->
                         <TextBlock Text="By continuing you agree to our Terms" />
                     </StackPanel>
                 </StackPanel>

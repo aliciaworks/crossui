@@ -1,9 +1,17 @@
 plugins {
     kotlin("multiplatform")
+    id("com.android.kotlin.multiplatform.library")
+    `maven-publish`
 }
 
 kotlin {
     jvm()
+    android {
+        namespace = "dev.crossui.dsl"
+        compileSdk = 35
+        minSdk = 24
+        withHostTest {}
+    }
     js {
         nodejs()
     }

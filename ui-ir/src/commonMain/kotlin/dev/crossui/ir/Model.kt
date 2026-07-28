@@ -7,6 +7,10 @@ import kotlinx.serialization.json.JsonElement
 
 const val IR_VERSION: UInt = 2u
 
+fun interface UiDocumentProvider {
+    fun document(): UiDocument
+}
+
 val CrossUiJson = Json {
     prettyPrint = true
     encodeDefaults = true
@@ -20,6 +24,8 @@ data class UiDocument(
     val version: UInt = IR_VERSION,
     val root: Node,
     val theme: Theme = Theme(),
+    val stateType: String? = null,
+    val actionType: String? = null,
 ) {
     @kotlinx.serialization.Transient
     private var index: Map<NodeKey, Node> = buildIndex(root)
@@ -65,10 +71,25 @@ data class Node(
     val semantics: Semantics = Semantics(),
     val children: List<Node> = emptyList(),
     val extensions: List<PlatformExtension> = emptyList(),
+    val bindings: Map<String, BindingRef> = emptyMap(),
+    val source: SourceLocation? = null,
 ) {
     fun withChildren(vararg nodes: Node) = copy(children = nodes.toList())
     fun withChildren(nodes: List<Node>) = copy(children = nodes)
 }
+
+@Serializable
+data class BindingRef(
+    val path: String,
+    val valueType: String? = null,
+)
+
+@Serializable
+data class SourceLocation(
+    val file: String,
+    val line: Int? = null,
+    val column: Int? = null,
+)
 
 @Serializable
 sealed interface NodeKind {

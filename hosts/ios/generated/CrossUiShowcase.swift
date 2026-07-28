@@ -2,45 +2,73 @@
 import SwiftUI
 
 struct CrossUiShowcase: View {
+
     let dispatch: (_ action: String, _ value: String?) -> Void
 
     var body: some View {
+        // crossui-node:app
         TabView {
+            // crossui-node:login
             VStack {
+                // crossui-node:login-content
                 VStack(spacing: 16) {
+                    // crossui-node:heading
                     Text("Welcome").font(.largeTitle)
+                    // crossui-node:logo
                     AsyncImage(url: URL(string: "https://example.com/logo.png")).accessibilityLabel("App logo")
+                    // crossui-node:email
                     TextField("you@example.com", text: .constant("")).keyboardType(.emailAddress).accessibilityLabel("Email")
+                    // crossui-node:password
                     SecureField("Password", text: .constant("")).submitLabel(.go).accessibilityLabel("Password")
+                    // crossui-node:search
                     TextField("Search…", text: .constant("")).submitLabel(.search)
-                    Toggle("Remember me", isOn: .constant(false)).onChange(of: false) { _, value in dispatch("remember_changed", String(value)) }
+                    // crossui-node:remember
+                    Toggle("Remember me", isOn: .constant(false))
+                    // crossui-node:volume-label
                     Text("Volume: 50%").font(.caption)
-                    Slider(value: .constant(0.5), in: 0.0...1.0, step: 0.05).onChange(of: 0.5) { _, value in dispatch("volume_changed", String(value)) }.accessibilityLabel("Volume")
+                    // crossui-node:volume
+                    Slider(value: .constant(0.5), in: 0.0...1.0, step: 0.05).accessibilityLabel("Volume")
+                    // crossui-node:terms
                     Button { dispatch("terms_changed", String(!false)) } label: { Label("I agree to the Terms", systemImage: false ? "checkmark.square.fill" : "square") }
+                    // crossui-node:chips
                     HStack(spacing: 16) {
+                        // crossui-node:ios
                         HStack { Text("iOS") }
+                        // crossui-node:android
                         HStack { Text("Android") }
+                        // crossui-node:active
                         HStack { Text("Active"); Button { dispatch("remove_active", nil) } label: { Image(systemName: "xmark") } }
                     }
+                    // crossui-node:separator
                     Divider()
+                    // crossui-node:language
                     Picker("", selection: .constant("en")) {
                         Text("English").tag("en")
                         Text("中文").tag("zh")
                         Text("日本語").tag("ja")
-                    }.onChange(of: "en") { _, value in dispatch("language_changed", value) }
+                    }
+                    // crossui-node:actions
                     HStack(spacing: 16) {
+                        // crossui-node:submit
                         Button("Continue") { dispatch("submit", nil) }.accessibilityLabel("Continue")
+                        // crossui-node:delete
                         Button("Delete", role: .destructive) { dispatch("show_delete", nil) }.accessibilityLabel("Delete account")
                     }
+                    // crossui-node:summary
                     GroupBox {
+                        // crossui-node:summary-copy
                         Text("Generated native controls").font(.body)
                     }
+                    // crossui-node:legal
                     Text("By continuing you agree to our Terms").font(.footnote)
                 }
             }.navigationTitle("Sign in").tabItem { Text("Sign in") }
+            // crossui-node:settings
             VStack {
+                // crossui-node:settings-title
                 Text("App Preferences").font(.title)
-                Toggle("Dark Mode", isOn: .constant(false)).onChange(of: false) { _, value in dispatch("dark_mode_changed", String(value)) }
+                // crossui-node:dark-mode
+                Toggle("Dark Mode", isOn: .constant(false))
             }.navigationTitle("Settings").tabItem { Text("Settings") }
         }
     }

@@ -4,6 +4,12 @@ import dev.crossui.ir.DiffOp
 import dev.crossui.ir.Platform
 import dev.crossui.ir.UiDocument
 import dev.crossui.ir.diff
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * The intentionally small KMP runtime. Native UI is generated ahead of time;
@@ -28,13 +34,14 @@ class Store<State, Action, Effect>(
     private val reducer: Reducer<State, Action, Effect>,
 ) {
     private val observers = mutableSetOf<(State) -> Unit>()
+    private val mutableStates = MutableStateFlow(initialState)
 
-    var state: State = initialState
-        private set
+    val states: StateFlow<State> = mutableStates.asStateFlow()
+    val state: State get() = mutableStates.value
 
     fun dispatch(action: Action): StoreUpdate<State, Effect> {
         val reduction = reducer.reduce(state, action)
-        state = reduction.state
+        mutableStates.value = reduction.state
         observers.toList().forEach { it(state) }
         return StoreUpdate(state, reduction.effects)
     }
@@ -103,6 +110,8 @@ class DocumentStore<State, Action, Effect>(
     private var document = view(initialState).also(UiDocument::validate)
 
     fun document(): UiDocument = document
+    val state: State get() = store.state
+    val states: StateFlow<State> get() = store.states
 
     fun dispatch(action: Action): DocumentUpdate<Effect> {
         val update = store.dispatch(action)
@@ -110,6 +119,104 @@ class DocumentStore<State, Action, Effect>(
         val result = DocumentUpdate(next, diff(document, next), update.effects)
         document = next
         return result
+    }
+}
+
+sealed interface Async<out Value> {
+    data object Idle : Async<Nothing>
+    data object Loading : Async<Nothing>
+    data class Success<Value>(val value: Value) : Async<Value>
+    data class Failure(val error: UiError) : Async<Nothing>
+}
+
+data class UiError(
+    val code: String,
+    val message: String,
+    val retryable: Boolean = false,
+)
+
+fun interface AsyncEffectHandler<Action, Effect> {
+    suspend fun execute(effect: Effect): Action?
+}
+
+/**
+ * Runs reducer effects with structured concurrency. Closing the store cancels
+ * every in-flight effect owned by the screen or feature.
+ */
+class AsyncStore<State, Action, Effect>(
+    initialState: State,
+    reducer: Reducer<State, Action, Effect>,
+    private val scope: CoroutineScope,
+    private val handler: AsyncEffectHandler<Action, Effect>,
+) {
+    private val store = Store(initialState, reducer)
+    private val jobs = mutableSetOf<Job>()
+
+    val state: State get() = store.state
+    val states: StateFlow<State> get() = store.states
+
+    fun dispatch(action: Action) {
+        val update = store.dispatch(action)
+        update.effects.forEach { effect ->
+            val job = scope.launch {
+                handler.execute(effect)?.let(::dispatch)
+            }
+            jobs += job
+            job.invokeOnCompletion { jobs -= job }
+        }
+    }
+
+    fun cancelEffects() {
+        jobs.toList().forEach(Job::cancel)
+        jobs.clear()
+    }
+
+    fun close() {
+        cancelEffects()
+    }
+}
+
+enum class SettingStorage {
+    Preferences,
+    SavedState,
+    Secure,
+}
+
+data class SettingKey<Value>(
+    val name: String,
+    val default: Value,
+    val storage: SettingStorage = SettingStorage.Preferences,
+)
+
+interface Setting<Value> {
+    val value: StateFlow<Value>
+    suspend fun set(value: Value)
+}
+
+interface SettingsStore {
+    fun boolean(key: SettingKey<Boolean>): Setting<Boolean>
+    fun string(key: SettingKey<String>): Setting<String>
+    fun int(key: SettingKey<Int>): Setting<Int>
+    fun double(key: SettingKey<Double>): Setting<Double>
+}
+
+class LifecycleTasks(
+    private val scope: CoroutineScope,
+) {
+    private val tasks = mutableMapOf<String, Job>()
+
+    fun launch(id: String, block: suspend CoroutineScope.() -> Unit) {
+        tasks.remove(id)?.cancel()
+        tasks[id] = scope.launch(block = block)
+    }
+
+    fun cancel(id: String) {
+        tasks.remove(id)?.cancel()
+    }
+
+    fun cancelAll() {
+        tasks.values.forEach(Job::cancel)
+        tasks.clear()
     }
 }
 

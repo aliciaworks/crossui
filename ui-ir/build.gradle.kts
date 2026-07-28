@@ -1,10 +1,18 @@
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
+    id("com.android.kotlin.multiplatform.library")
+    `maven-publish`
 }
 
 kotlin {
     jvm()
+    android {
+        namespace = "dev.crossui.ir"
+        compileSdk = 35
+        minSdk = 24
+        withHostTest {}
+    }
     js {
         nodejs()
     }

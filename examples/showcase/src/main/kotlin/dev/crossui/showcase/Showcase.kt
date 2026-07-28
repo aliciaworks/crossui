@@ -83,18 +83,28 @@ fun main(args: Array<String>) {
     if (args.firstOrNull() == "--generate") {
         val hosts = Path.of(args.getOrElse(1) { error("Missing hosts directory") })
         val sources = CrossUiCompiler.generate(document, typeName = "CrossUiShowcase")
-        val paths = sources.map { source ->
+        val mappedSources = sources.map { source ->
             val relative = when (source.target) {
                 ExportTarget.SwiftUi -> "ios/generated/CrossUiShowcase.swift"
                 ExportTarget.JetpackCompose -> "android/generated/CrossUiShowcase.kt"
                 ExportTarget.WinUi3 -> "windows/generated/CrossUiShowcase.xaml"
             }
+            val mapped = source.copy(
+                relativePath = relative,
+                mappings = source.mappings.map { it.copy(generatedFile = relative) },
+            )
             hosts.resolve(relative).also {
                 Files.createDirectories(it.parent)
-                Files.writeString(it, source.content)
+                Files.writeString(it, mapped.content)
             }
+            mapped
         }
-        paths.forEach(::println)
+        val sourceMap = CrossUiCompiler.writeSourceMap(
+            mappedSources,
+            hosts.resolve("crossui-map.json"),
+        )
+        mappedSources.forEach { println(hosts.resolve(it.relativePath)) }
+        println(sourceMap)
         return
     }
 

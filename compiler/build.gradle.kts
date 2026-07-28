@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     application
+    `maven-publish`
 }
 
 kotlin {
@@ -22,4 +23,12 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("compiler") {
+            from(components["java"])
+        }
+    }
 }

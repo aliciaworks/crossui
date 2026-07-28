@@ -2,7 +2,12 @@ package dev.crossui.runtime
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class RuntimeTest {
     @Test
     fun storeNotifiesAfterReduction() {
@@ -23,5 +28,36 @@ class RuntimeTest {
     fun navigationBackStackIsSharedLogic() {
         val state = NavigationState("login").navigate("projects").navigate("detail").back()
         assertEquals("projects", state.activeRoute)
+    }
+
+    private sealed interface AsyncAction {
+        data object Start : AsyncAction
+        data class Complete(val value: String) : AsyncAction
+    }
+
+    @Test
+    fun asyncEffectsReturnActionsIntoTheReducer() = runTest {
+        val reducer = object : Reducer<Async<String>, AsyncAction, String> {
+            override fun reduce(
+                state: Async<String>,
+                action: AsyncAction,
+            ): Reduction<Async<String>, String> = when (action) {
+                AsyncAction.Start -> Reduction(Async.Loading, listOf("load"))
+                is AsyncAction.Complete -> Reduction(Async.Success(action.value))
+            }
+        }
+        val store = AsyncStore(
+            initialState = Async.Idle,
+            reducer = reducer,
+            scope = this,
+            handler = AsyncEffectHandler { AsyncAction.Complete("ready") },
+        )
+
+        store.dispatch(AsyncAction.Start)
+        advanceUntilIdle()
+
+        val state = assertIs<Async.Success<String>>(store.state)
+        assertEquals("ready", state.value)
+        store.close()
     }
 }
