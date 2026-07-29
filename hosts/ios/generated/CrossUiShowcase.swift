@@ -21,7 +21,7 @@ struct CrossUiShowcase: View {
                         // crossui-node:logo
                         AsyncImage(url: URL(string: "https://example.com/logo.png")).accessibilityLabel("App logo")
                         // crossui-node:email
-                        TextField("you@example.com", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).keyboardType(.emailAddress).accessibilityLabel("Email")
+                        TextField("you@example.com", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).crossUiKeyboard(.email).accessibilityLabel("Email")
                         // crossui-node:password
                         SecureField("Password", text: Binding(get: { state.password }, set: { dispatch("password_changed", $0) })).submitLabel(.go).accessibilityLabel("Password")
                         // crossui-node:search
@@ -124,5 +124,33 @@ struct CrossUiShowcaseConnected: View {
         CrossUiShowcase(state: model.state) { action, value in
             model.dispatch(actions(action, value))
         }
+    }
+}
+
+
+private enum CrossUiGeneratedKeyboard {
+    case email
+    case number
+    case phone
+    case url
+}
+
+private extension View {
+    @ViewBuilder
+    func crossUiKeyboard(_ keyboard: CrossUiGeneratedKeyboard) -> some View {
+#if os(iOS)
+        switch keyboard {
+        case .email:
+            keyboardType(.emailAddress)
+        case .number:
+            keyboardType(.numberPad)
+        case .phone:
+            keyboardType(.phonePad)
+        case .url:
+            keyboardType(.URL)
+        }
+#else
+        self
+#endif
     }
 }

@@ -16,7 +16,7 @@ struct CrossUiTypedFixture: View {
                     // crossui-node:fixture-content
                     VStack(spacing: 16) {
                         // crossui-node:fixture-email
-                        TextField("Email address", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).keyboardType(.emailAddress)
+                        TextField("Email address", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).crossUiKeyboard(.email)
                         // crossui-node:fixture-status
                         Text(state.status).font(.body)
                         // crossui-node:fixture-loading
@@ -105,6 +105,34 @@ private func CrossUiTypedFixtureAdaptiveContent<Content: View>(
             alignment: .top
         )
         .padding(.horizontal, 20)
+}
+
+
+private enum CrossUiGeneratedKeyboard {
+    case email
+    case number
+    case phone
+    case url
+}
+
+private extension View {
+    @ViewBuilder
+    func crossUiKeyboard(_ keyboard: CrossUiGeneratedKeyboard) -> some View {
+#if os(iOS)
+        switch keyboard {
+        case .email:
+            keyboardType(.emailAddress)
+        case .number:
+            keyboardType(.numberPad)
+        case .phone:
+            keyboardType(.phonePad)
+        case .url:
+            keyboardType(.URL)
+        }
+#else
+        self
+#endif
+    }
 }
 
 

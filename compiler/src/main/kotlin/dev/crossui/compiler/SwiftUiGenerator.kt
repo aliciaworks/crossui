@@ -53,6 +53,10 @@ internal object SwiftUiGenerator : CodeGenerator {
         } else {
             ""
         }
+        val keyboardHelper = if (document.document.root.anyNode {
+                (it.kind as? NodeKind.Input)?.inputType in platformKeyboards
+            }
+        ) swiftKeyboardSupport() else ""
         return listOf(
             GeneratedSource(
                 target,
@@ -70,7 +74,7 @@ internal object SwiftUiGenerator : CodeGenerator {
                 |    var body: some View {
                 |$body
                 |    }
-                |}$connector$adaptiveHelper$temporalCodec
+                |}$connector$adaptiveHelper$keyboardHelper$temporalCodec
                 |""".trimMargin().trimEnd() + "\n",
             ),
         )
@@ -303,24 +307,6 @@ internal object SwiftUiGenerator : CodeGenerator {
         return marker + rendered
     }
 
-    private fun swiftAdaptiveContent(typeName: String): String = """
-        |
-        |
-        |@ViewBuilder
-        |private func ${typeName}AdaptiveContent<Content: View>(
-        |    @ViewBuilder content: () -> Content
-        |) -> some View {
-        |    content()
-        |        .frame(maxWidth: 720, alignment: .topLeading)
-        |        .frame(
-        |            maxWidth: .infinity,
-        |            maxHeight: .infinity,
-        |            alignment: .top
-        |        )
-        |        .padding(.horizontal, 20)
-        |}
-        |""".trimMargin()
-
     private fun datePicker(
         node: Node,
         kind: NodeKind.DatePicker,
@@ -478,10 +464,10 @@ internal object SwiftUiGenerator : CodeGenerator {
     }
 
     private fun keyboard(type: InputType) = when (type) {
-        InputType.Email -> ".keyboardType(.emailAddress)"
-        InputType.Number -> ".keyboardType(.numberPad)"
-        InputType.Phone -> ".keyboardType(.phonePad)"
-        InputType.Url -> ".keyboardType(.URL)"
+        InputType.Email -> ".crossUiKeyboard(.email)"
+        InputType.Number -> ".crossUiKeyboard(.number)"
+        InputType.Phone -> ".crossUiKeyboard(.phone)"
+        InputType.Url -> ".crossUiKeyboard(.url)"
         else -> ""
     }
 

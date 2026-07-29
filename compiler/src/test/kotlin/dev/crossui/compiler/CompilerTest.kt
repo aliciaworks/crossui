@@ -118,6 +118,27 @@ class CompilerTest {
     }
 
     @Test
+    fun swiftGuardsMobileKeyboardModifiersFromMacOs() {
+        val source = typedDocument<TestState, TestAction>(
+            emailInput(
+                "email",
+                bind(TestState::email),
+                "Email",
+                "email_changed",
+            ),
+        )
+        val swift = CrossUiCompiler.generate(
+            source,
+            setOf(ExportTarget.SwiftUi),
+        ).single().content
+
+        assertTrue(swift.contains(".crossUiKeyboard(.email)"))
+        assertTrue(swift.contains("#if os(iOS)"))
+        assertTrue(swift.contains("keyboardType(.emailAddress)"))
+        assertTrue(swift.contains("#else\n        self"))
+    }
+
+    @Test
     fun platformViewsRequireExplicitEscapeHatches() {
         val source = document.copy(
             root = document.root.copy(
