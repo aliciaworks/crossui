@@ -281,6 +281,7 @@ sealed interface NodeKind {
     data class Navigation(
         val active: String,
         val mode: NavigationMode = NavigationMode.Tab,
+        val onChange: String = "navigate",
     ) : NodeKind
 
     @Serializable

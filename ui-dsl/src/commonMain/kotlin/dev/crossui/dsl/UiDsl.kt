@@ -259,7 +259,7 @@ fun vstack(
     key: String,
     children: List<Node>,
     spacing: String? = null,
-    alignment: Alignment = Alignment.Center,
+    alignment: Alignment = Alignment.Start,
 ) = Node(
     NodeKey(key),
     NodeKind.Stack(Axis.Vertical, spacing, alignment),
@@ -269,7 +269,7 @@ fun vstack(
 fun vstack(
     key: String,
     spacing: String? = null,
-    alignment: Alignment = Alignment.Center,
+    alignment: Alignment = Alignment.Start,
     block: ChildrenBuilder.() -> Unit,
 ) = vstack(key, ui(block), spacing, alignment)
 
@@ -311,35 +311,6 @@ fun loading(key: String, label: LocalizedText) =
         NodeKind.Loading(label.fallback),
         localizedText = mapOf(LocalizedField.Label to label),
     )
-
-fun tabNavigation(key: String, active: String, routes: List<Node>) =
-    Node(NodeKey(key), NodeKind.Navigation(active, NavigationMode.Tab), children = routes)
-
-fun stackNavigation(key: String, active: String, routes: List<Node>) =
-    Node(NodeKey(key), NodeKind.Navigation(active, NavigationMode.Stack), children = routes)
-
-fun navigation(key: String, active: String, routes: List<Node>) =
-    tabNavigation(key, active, routes)
-
-fun route(key: String, title: String, children: List<Node>) =
-    Node(NodeKey(key), NodeKind.Route(title), children = children)
-
-fun route(key: String, title: String, block: ChildrenBuilder.() -> Unit) =
-    route(key, title, ui(block))
-
-fun route(key: String, title: LocalizedText, children: List<Node>) =
-    Node(
-        NodeKey(key),
-        NodeKind.Route(title.fallback),
-        children = children,
-        localizedText = mapOf(LocalizedField.Title to title),
-    )
-
-fun route(key: String, title: LocalizedText, block: ChildrenBuilder.() -> Unit) =
-    route(key, title, ui(block))
-
-fun fullscreenRoute(key: String, title: String, children: List<Node>) =
-    Node(NodeKey(key), NodeKind.Route(title, respectSafeArea = false), children = children)
 
 fun toggle(key: String, label: String?, checked: Boolean, onChange: String) =
     Node(NodeKey(key), NodeKind.Toggle(label, checked, onChange))

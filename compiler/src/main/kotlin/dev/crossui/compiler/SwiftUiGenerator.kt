@@ -208,7 +208,8 @@ internal object SwiftUiGenerator : CodeGenerator {
                     localization,
                 )
                 "$i${"Button($label$role) { dispatch(\"${kind.action.swift()}\", nil) }"}" +
-                    enabled(node) + accessibility(node) + keyboardShortcut(node)
+                    kind.variant.swiftButtonStyle() + enabled(node) +
+                    accessibility(node) + keyboardShortcut(node)
             }
             is NodeKind.Input -> {
                 val prompt = node.swiftText(
@@ -229,11 +230,12 @@ internal object SwiftUiGenerator : CodeGenerator {
             }
             is NodeKind.Stack -> {
                 val stack = if (kind.axis == Axis.Horizontal) "HStack" else "VStack"
-                "$i$stack(spacing: ${spacing(kind.spacing)}) {\n${child(1)}\n$i}"
+                "$i$stack(${kind.swiftStackAlignment()}spacing: ${spacing(kind.spacing)}) {\n${child(1)}\n$i}" +
+                    kind.swiftStretch()
             }
             is NodeKind.ListNode ->
                 "$i${"List {\n${child(1)}\n$i}"}.onTapGesture { dispatch(\"${kind.onSelect.orEmpty().swift()}\", nil) }"
-            NodeKind.Form -> "$i${"Form {\n${child(1)}\n$i}"}"
+            NodeKind.Form -> "$i${"Form {\n${child(1)}\n$i}"}.formStyle(.grouped)"
             is NodeKind.Loading -> {
                 val label = node.swiftText(
                     LocalizedField.Label,
@@ -244,17 +246,13 @@ internal object SwiftUiGenerator : CodeGenerator {
             }
             is NodeKind.Navigation ->
                 navigation(node, kind, depth, i, nativeViews, localization)
-            is NodeKind.Route -> {
-                val stack = "$i${"VStack {\n${child(1)}\n$i}"}"
-                val content = if (node.anyNode {
-                        it !== node &&
-                            (it.kind is NodeKind.Form || it.kind is NodeKind.ListNode)
-                    }
-                ) stack else "$i${"ScrollView {\n${stack.prependIndent("    ")}\n$i}"}"
-                content + ".navigationTitle(" +
-                    node.swiftText(LocalizedField.Title, kind.title, localization) + ")" +
-                    if (kind.respectSafeArea) "" else ".ignoresSafeArea()"
-            }
+            is NodeKind.Route -> swiftRouteLayout(
+                node = node,
+                kind = kind,
+                indentation = i,
+                children = child(2),
+                title = node.swiftText(LocalizedField.Title, kind.title, localization),
+            )
             is NodeKind.PlatformView -> nativeViews.render(
                 target,
                 kind.name,
@@ -295,7 +293,8 @@ internal object SwiftUiGenerator : CodeGenerator {
                 }
                 val label = node.swiftText(LocalizedField.Label, kind.label, localization)
                 "$i${"Button($label$role) { dispatch(\"${kind.onRequest.swift()}\", nil) }"}" +
-                    enabled(node) + accessibility(node) + keyboardShortcut(node)
+                    kind.variant.swiftButtonStyle() + enabled(node) +
+                    accessibility(node) + keyboardShortcut(node)
             }
         }
         val visible = node.bindings["visible"]
@@ -385,11 +384,16 @@ internal object SwiftUiGenerator : CodeGenerator {
         val selected = node.children.firstOrNull { it.key.value == kind.active }
             ?: node.children.firstOrNull()
         return if (kind.mode == NavigationMode.Tab) {
-            "$indentation${"TabView {\n"}" +
+            val selection = node.bindings["active"]?.let {
+                "(selection: Binding(get: { state.${it.path} }, " +
+                    "set: { dispatch(\"${kind.onChange.swift()}\", \$0) }))"
+            }.orEmpty()
+            "$indentation${"TabView$selection {\n"}" +
                 node.children.joinToString("\n") { route ->
                     val title = (route.kind as? NodeKind.Route)?.title ?: route.key.value
                     swiftNode(route, depth + 1, nativeViews, localization) +
-                        ".tabItem { Text(${route.swiftText(LocalizedField.Title, title, localization)}) }"
+                        ".tabItem { Text(${route.swiftText(LocalizedField.Title, title, localization)}) }" +
+                        if (selection.isEmpty()) "" else ".tag(\"${route.key.value.swift()}\")"
                 } + "\n$indentation}.tabViewStyle(.sidebarAdaptable)"
         } else {
             "$indentation${"NavigationStack {\n${selected?.let { swiftNode(it, depth + 1, nativeViews, localization) }.orEmpty()}\n$indentation}"}"

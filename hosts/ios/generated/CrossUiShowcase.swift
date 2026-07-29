@@ -10,12 +10,12 @@ struct CrossUiShowcase: View {
 
     var body: some View {
         // crossui-node:app
-        TabView {
+        TabView(selection: Binding(get: { state.activeRoute }, set: { dispatch("navigate", $0) })) {
             // crossui-node:login
             ScrollView {
-                VStack {
+                VStack(alignment: .leading, spacing: 16) {
                     // crossui-node:login-content
-                    VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 16) {
                         // crossui-node:heading
                         Text(String(localized: "showcase.welcome", defaultValue: "Welcome")).font(.largeTitle)
                         // crossui-node:logo
@@ -35,7 +35,7 @@ struct CrossUiShowcase: View {
                         // crossui-node:terms
                         Button { dispatch("terms_changed", String(!state.termsAccepted)) } label: { Label("I agree to the Terms", systemImage: state.termsAccepted ? "checkmark.square.fill" : "square") }
                         // crossui-node:chips
-                        HStack(spacing: 16) {
+                        HStack(alignment: .center, spacing: 16) {
                             // crossui-node:ios
                             HStack { Text("iOS") }
                             // crossui-node:android
@@ -52,16 +52,16 @@ struct CrossUiShowcase: View {
                             Text(String(localized: "language.japanese", defaultValue: "日本語")).tag("ja-JP")
                         }
                         // crossui-node:actions
-                        HStack(spacing: 16) {
+                        HStack(alignment: .center, spacing: 16) {
                             // crossui-node:submit
-                            Button("Continue") { dispatch("submit", nil) }.accessibilityLabel("Continue").keyboardShortcut("↩", modifiers: [.command])
+                            Button("Continue") { dispatch("submit", nil) }.buttonStyle(.borderedProminent).accessibilityLabel("Continue").keyboardShortcut("↩", modifiers: [.command])
                             // crossui-node:delete
-                            Button("Delete", role: .destructive) { dispatch("show_delete", nil) }.accessibilityLabel("Delete account")
+                            Button("Delete", role: .destructive) { dispatch("show_delete", nil) }.buttonStyle(.bordered).accessibilityLabel("Delete account")
                         }
                         // crossui-node:attachment
-                        Button(String(localized: "showcase.attach_document", defaultValue: "Attach document")) { dispatch("pick_attachment", nil) }
+                        Button(String(localized: "showcase.attach_document", defaultValue: "Attach document")) { dispatch("pick_attachment", nil) }.buttonStyle(.borderedProminent)
                         // crossui-node:photos
-                        Button("Choose photos") { dispatch("pick_photos", nil) }
+                        Button("Choose photos") { dispatch("pick_photos", nil) }.buttonStyle(.borderedProminent)
                         // crossui-node:picker-status
                         Text(state.pickerStatus).font(.body)
                         // crossui-node:summary
@@ -73,16 +73,24 @@ struct CrossUiShowcase: View {
                         Text("By continuing you agree to our Terms").font(.footnote)
                     }
                 }
-            }.navigationTitle("Sign in").tabItem { Text("Sign in") }
+                .frame(maxWidth: 840, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+            }.navigationTitle("Sign in").tabItem { Text("Sign in") }.tag("login")
             // crossui-node:settings
             ScrollView {
-                VStack {
+                VStack(alignment: .leading, spacing: 16) {
                     // crossui-node:settings-title
                     Text("App Preferences").font(.title)
                     // crossui-node:dark-mode
                     Toggle("Dark Mode", isOn: Binding(get: { state.darkMode }, set: { dispatch("dark_mode_changed", String(describing: $0)) }))
                 }
-            }.navigationTitle("Settings").tabItem { Text("Settings") }
+                .frame(maxWidth: 840, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+            }.navigationTitle("Settings").tabItem { Text("Settings") }.tag("settings")
         }.tabViewStyle(.sidebarAdaptable)
     }
 }

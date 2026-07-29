@@ -23,6 +23,7 @@ private sealed interface WinUiFixtureAction {
 }
 
 private data class ShowcaseState(
+    val activeRoute: String = "login",
     val email: String = "",
     val password: String = "",
     val search: String = "",
@@ -36,6 +37,7 @@ private data class ShowcaseState(
 )
 
 private sealed interface ShowcaseAction {
+    data class Navigate(val route: String) : ShowcaseAction
     data class VolumeChanged(val value: Double) : ShowcaseAction
     data class LanguageChanged(val value: String) : ShowcaseAction
     data object PickAttachment : ShowcaseAction
@@ -44,9 +46,10 @@ private sealed interface ShowcaseAction {
 
 fun showcaseDocument(): UiDocument = typedDocument<ShowcaseState, ShowcaseAction>(
     tabNavigation(
-        "app",
-        "login",
-        listOf(
+        key = "app",
+        active = bind(ShowcaseState::activeRoute),
+        onChange = "navigate",
+        routes = listOf(
             route("login", "Sign in") {
                 +vstack("login-content") {
                     +display(

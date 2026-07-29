@@ -30,6 +30,7 @@ public sealed partial class CrossUiTypedFixture : UserControl
         Dispatch = dispatch;
         State = new CrossUiTypedFixtureState(dispatch, DispatcherQueue);
         InitializeComponent();
+
     }
 
     public void RefreshLocalization()
@@ -116,7 +117,10 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
     public void ApplyEmail(string value) =>
         SetEmail(value, false);
 
-    private void SetEmail(string value, bool dispatchChange)
+    private void SetEmail(
+        string value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -125,20 +129,20 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(email, value))
         {
             return;
         }
-
         email = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Email)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(Email))
+        );
         if (dispatchChange)
         {
             dispatch("email_changed", value);
         }
     }
-
 
     private string status = "";
 
@@ -151,7 +155,10 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
     public void ApplyStatus(string value) =>
         SetStatus(value, false);
 
-    private void SetStatus(string value, bool dispatchChange)
+    private void SetStatus(
+        string value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -160,16 +167,16 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(status, value))
         {
             return;
         }
-
         status = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Status)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(Status))
+        );
     }
-
 
     private bool isSubmitting = false;
 
@@ -182,7 +189,10 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
     public void ApplyIsSubmitting(bool value) =>
         SetIsSubmitting(value, false);
 
-    private void SetIsSubmitting(bool value, bool dispatchChange)
+    private void SetIsSubmitting(
+        bool value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -191,16 +201,16 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(isSubmitting, value))
         {
             return;
         }
-
         isSubmitting = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSubmitting)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(IsSubmitting))
+        );
     }
-
 
     private bool canSubmit = true;
 
@@ -213,7 +223,10 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
     public void ApplyCanSubmit(bool value) =>
         SetCanSubmit(value, false);
 
-    private void SetCanSubmit(bool value, bool dispatchChange)
+    private void SetCanSubmit(
+        bool value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -222,16 +235,16 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(canSubmit, value))
         {
             return;
         }
-
         canSubmit = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanSubmit)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(CanSubmit))
+        );
     }
-
 
     private bool darkMode = false;
 
@@ -244,7 +257,10 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
     public void ApplyDarkMode(bool value) =>
         SetDarkMode(value, false);
 
-    private void SetDarkMode(bool value, bool dispatchChange)
+    private void SetDarkMode(
+        bool value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -253,20 +269,20 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(darkMode, value))
         {
             return;
         }
-
         darkMode = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DarkMode)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(DarkMode))
+        );
         if (dispatchChange)
         {
             dispatch("dark_mode_changed", value.ToString().ToLowerInvariant());
         }
     }
-
 
     private DateTimeOffset? appointment = null;
 
@@ -334,5 +350,4 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
             );
         }
     }
-
 }

@@ -251,6 +251,7 @@ private fun Node.bindingAction(field: String): String? = when (val value = kind)
     is NodeKind.Picker -> value.onChange.takeIf { field == "selected" }
     is NodeKind.DatePicker -> value.onChange.takeIf { field == "value" }
     is NodeKind.Checkbox -> value.onChange.takeIf { field == "checked" }
+    is NodeKind.Navigation -> value.onChange.takeIf { field == "active" }
     else -> null
 }
 
@@ -272,6 +273,7 @@ private fun Node.csharpDefault(field: String, type: String): String = when (type
             is NodeKind.Input -> kind.value
             is NodeKind.Picker -> kind.selected
             is NodeKind.DatePicker -> kind.value.orEmpty()
+            is NodeKind.Navigation -> kind.active
             else -> ""
         }
         "\"${value.csharp()}\""

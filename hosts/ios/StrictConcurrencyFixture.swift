@@ -1,6 +1,7 @@
 // Handwritten compile-only types that mirror the KMP Swift export boundary.
 
 struct ShowcaseState: Sendable {
+    var activeRoute = "login"
     var email = ""
     var password = ""
     var search = ""

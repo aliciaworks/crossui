@@ -103,7 +103,9 @@ internal object ComposeGenerator : CodeGenerator {
                 |import androidx.compose.foundation.text.KeyboardOptions
                 |import androidx.compose.foundation.verticalScroll
                 |import androidx.compose.material3.*
+                |import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
                 |import androidx.compose.runtime.*
+                |import androidx.compose.runtime.saveable.rememberSaveable
                 |import androidx.compose.ui.Alignment
                 |import androidx.compose.ui.Modifier
                 |import androidx.compose.ui.res.stringResource
@@ -195,8 +197,9 @@ internal object ComposeGenerator : CodeGenerator {
                 } else {
                     "verticalArrangement"
                 }
+                val alignment = kind.composeAlignment()
                 val modifier = rootScrollModifier(depth, rootVerticalScroll)
-                "$i$layout($modifier$arrangement = Arrangement.spacedBy(${spacing(kind.spacing)}.dp)) {\n${child(1)}\n$i}"
+                "$i$layout($modifier$arrangement = Arrangement.spacedBy(${spacing(kind.spacing)}.dp)$alignment) {\n${child(1)}\n$i}"
             }
             is NodeKind.ListNode ->
                 "$i${"LazyColumn { item {\n${child(2)}\n${"    ".repeat(depth + 1)}}\n$i}"}"
@@ -204,7 +207,9 @@ internal object ComposeGenerator : CodeGenerator {
                 "$i${"Column(${rootScrollModifier(depth, rootVerticalScroll)}verticalArrangement = Arrangement.spacedBy(16.dp)) {\n${child(1)}\n$i}"}"
             is NodeKind.Loading -> "$i${"CircularProgressIndicator()"}"
             is NodeKind.Navigation ->
-                navigation(node, kind, depth, i, nativeViews, localization)
+                composeNavigation(node, kind, depth, i, localization) { route, routeDepth ->
+                    composeNode(route, routeDepth, nativeViews, localization)
+                }
             is NodeKind.Route ->
                 "$i${"Column(${rootScrollModifier(depth, rootVerticalScroll)}verticalArrangement = Arrangement.spacedBy(16.dp)) {\n${child(1)}\n$i}"}"
             is NodeKind.PlatformView -> nativeViews.render(
@@ -213,20 +218,17 @@ internal object ComposeGenerator : CodeGenerator {
                 kind.payload.toString(),
             )?.prependIndent(i) ?: throw missingNativeView(kind.name, target)
             is NodeKind.Toggle ->
-                "$i${"Row { Switch(checked = ${node.composeValue("checked", kind.checked.toString())}, onCheckedChange = { dispatch(\"${kind.onChange.kotlin()}\", it.toString()) }, enabled = ${node.composeEnabled()})"}" +
-                    (kind.label?.let {
-                        "; Text(${node.composeText(LocalizedField.Label, it, localization)})"
-                    } ?: "") + " }"
+                composeToggle(node, kind, i, localization)
             is NodeKind.Image ->
                 "$i${"AsyncImage(model = \"${kind.src.kotlin()}\", contentDescription = ${node.composeText(LocalizedField.Alt, kind.alt.orEmpty(), localization)})"}"
             is NodeKind.Dialog ->
                 "$i${"AlertDialog(onDismissRequest = { dispatch(\"${kind.cancelAction.orEmpty().kotlin()}\", null) }, title = { Text(${node.composeText(LocalizedField.Title, kind.title, localization)}) }, confirmButton = { TextButton(onClick = { dispatch(\"${kind.confirmAction.orEmpty().kotlin()}\", null) }) { Text(${node.composeText(LocalizedField.ConfirmLabel, kind.confirmLabel.orEmpty(), localization)}) } }, dismissButton = { TextButton(onClick = { dispatch(\"${kind.cancelAction.orEmpty().kotlin()}\", null) }) { Text(${node.composeText(LocalizedField.CancelLabel, kind.cancelLabel.orEmpty(), localization)}) } })"}"
             is NodeKind.Slider ->
-                "$i${"Slider(value = ${node.composeValue("value", "${kind.value}f")}, onValueChange = { dispatch(\"${kind.onChange.kotlin()}\", it.toString()) }, valueRange = ${kind.min}f..${kind.max}f, enabled = ${node.composeEnabled()})"}"
+                "$i${"Slider(value = ${node.composeValue("value", "${kind.value}f")}, onValueChange = { dispatch(\"${kind.onChange.kotlin()}\", it.toString()) }, modifier = Modifier.fillMaxWidth(), valueRange = ${kind.min}f..${kind.max}f, enabled = ${node.composeEnabled()})"}"
             is NodeKind.Picker -> picker(node, kind, i, localization)
             is NodeKind.DatePicker -> datePicker(node, kind, i)
             is NodeKind.Checkbox ->
-                "$i${"Row { Checkbox(checked = ${node.composeValue("checked", kind.checked.toString())}, onCheckedChange = { dispatch(\"${kind.onChange.kotlin()}\", it.toString()) }, enabled = ${node.composeEnabled()})"}" +
+                "$i${"Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = ${node.composeValue("checked", kind.checked.toString())}, onCheckedChange = { dispatch(\"${kind.onChange.kotlin()}\", it.toString()) }, enabled = ${node.composeEnabled()})"}" +
                     (kind.label?.let {
                         "; Text(${node.composeText(LocalizedField.Label, it, localization)})"
                     } ?: "") + " }"
@@ -255,7 +257,8 @@ internal object ComposeGenerator : CodeGenerator {
         enabled: Boolean,
     ): String = if (depth == 2 && enabled) {
         "modifier = Modifier.widthIn(max = 720.dp).fillMaxSize()" +
-            ".verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), "
+            ".verticalScroll(rememberScrollState())" +
+            ".padding(horizontal = 16.dp, vertical = 16.dp), "
     } else {
         ""
     }
@@ -270,7 +273,7 @@ internal object ComposeGenerator : CodeGenerator {
             "value",
             node.composeText(LocalizedField.Value, kind.text, localization),
         )
-        return "$i${"Text($value)"}"
+        return "$i${"Text($value, style = MaterialTheme.typography.${kind.style.composeTypography()})"}"
     }
 
     private fun button(
@@ -284,8 +287,16 @@ internal object ComposeGenerator : CodeGenerator {
             ButtonVariant.Secondary -> "OutlinedButton"
             ButtonVariant.Destructive -> "Button"
         }
+        val colors = if (kind.variant == ButtonVariant.Destructive) {
+            ", colors = ButtonDefaults.buttonColors(" +
+                "containerColor = MaterialTheme.colorScheme.error, " +
+                "contentColor = MaterialTheme.colorScheme.onError)"
+        } else {
+            ""
+        }
         val label = node.composeText(LocalizedField.Label, kind.label, localization)
-        return "$i$name(onClick = { dispatch(\"${kind.action.kotlin()}\", null) }, enabled = ${node.composeEnabled()}) { Text($label) }"
+        return "$i$name(onClick = { dispatch(\"${kind.action.kotlin()}\", null) }, " +
+            "enabled = ${node.composeEnabled()}$colors) { Text($label) }"
     }
 
     private fun input(
@@ -307,89 +318,7 @@ internal object ComposeGenerator : CodeGenerator {
         } else {
             ")"
         }
-        return "$i${"OutlinedTextField(value = $value, onValueChange = { dispatch(\"${kind.onChange.kotlin()}\", it) }, label = { Text($placeholder) }, enabled = ${node.composeEnabled()}, keyboardOptions = $keyboard"}$suffix"
-    }
-
-    private fun navigation(
-        node: Node,
-        kind: NodeKind.Navigation,
-        depth: Int,
-        i: String,
-        nativeViews: NativeViewRegistry,
-        localization: LocalizationRegistry,
-    ): String {
-        val selected = node.children.firstOrNull { it.key.value == kind.active }
-            ?: node.children.firstOrNull()
-        if (kind.mode != NavigationMode.Tab) {
-            return selected?.let {
-                composeNode(it, depth, nativeViews, localization)
-            } ?: "${i}Spacer(Modifier)"
-        }
-        val railItems = navigationItems(
-            node,
-            kind,
-            depth + 3,
-            localization,
-            "NavigationRailItem",
-        )
-        val barItems = navigationItems(
-            node,
-            kind,
-            depth + 3,
-            localization,
-            "NavigationBarItem",
-        )
-        val content = selected?.let {
-            composeNode(it, depth + 2, nativeViews, localization)
-        }.orEmpty()
-        val contentName = "crossUiContent${node.key.value.identifier()}"
-        val scroll = if (selected?.anyNode { it.kind is NodeKind.ListNode } == true) {
-            ""
-        } else {
-            ".verticalScroll(rememberScrollState())"
-        }
-        return """
-            |${i}BoxWithConstraints(Modifier.fillMaxSize()) {
-            |${i}    val $contentName: @Composable () -> Unit = {
-            |$content
-            |${i}    }
-            |${i}    if (maxWidth >= 600.dp) {
-            |${i}        Row(Modifier.fillMaxSize()) {
-            |${i}            NavigationRail {
-            |$railItems
-            |${i}            }
-            |${i}            Box(Modifier.weight(1f).fillMaxHeight()$scroll.padding(horizontal = 24.dp), contentAlignment = Alignment.TopCenter) {
-            |${i}                Box(Modifier.widthIn(max = 840.dp).fillMaxWidth()) {
-            |${i}                    $contentName()
-            |${i}                }
-            |${i}            }
-            |${i}        }
-            |${i}    } else {
-            |${i}        Column(Modifier.fillMaxSize()) {
-            |${i}            Box(Modifier.weight(1f).fillMaxWidth()$scroll.padding(horizontal = 16.dp)) {
-            |${i}                $contentName()
-            |${i}            }
-            |${i}            NavigationBar {
-            |$barItems
-            |${i}            }
-            |${i}        }
-            |${i}    }
-            |${i}}
-        """.trimMargin()
-    }
-
-    private fun navigationItems(
-        node: Node,
-        kind: NodeKind.Navigation,
-        depth: Int,
-        localization: LocalizationRegistry,
-        component: String,
-    ): String = node.children.joinToString("\n") { route ->
-        val title = (route.kind as? NodeKind.Route)?.title ?: route.key.value
-        val label = route.composeText(LocalizedField.Title, title, localization)
-        "${"    ".repeat(depth)}$component(selected = " +
-            "${route.key.value == kind.active}, onClick = { dispatch(\"navigate\", " +
-            "\"${route.key.value.kotlin()}\") }, icon = {}, label = { Text($label) })"
+        return "$i${"OutlinedTextField(value = $value, onValueChange = { dispatch(\"${kind.onChange.kotlin()}\", it) }, modifier = Modifier.fillMaxWidth(), label = { Text($placeholder) }, enabled = ${node.composeEnabled()}, keyboardOptions = $keyboard"}$suffix"
     }
 
     private fun picker(
@@ -398,14 +327,7 @@ internal object ComposeGenerator : CodeGenerator {
         i: String,
         localization: LocalizationRegistry,
     ): String {
-        val selected = kind.options
-            .firstOrNull { it.value == kind.selected }
-            ?.composeText(localization)
-            ?: "\"\""
-        return "$i${"Column { Text(${node.composeValue("selected", selected)})"}" +
-            kind.options.joinToString("") {
-                "; TextButton(onClick = { dispatch(\"${kind.onChange.kotlin()}\", \"${it.value.kotlin()}\") }) { Text(${it.composeText(localization)}) }"
-            } + " }"
+        return composePicker(node, kind, i, localization)
     }
 
     private fun datePicker(

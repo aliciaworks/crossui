@@ -12,9 +12,9 @@ struct CrossUiTypedFixture: View {
         CrossUiTypedFixtureAdaptiveContent {
             // crossui-node:fixture
             ScrollView {
-                VStack {
+                VStack(alignment: .leading, spacing: 16) {
                     // crossui-node:fixture-content
-                    VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 16) {
                         // crossui-node:fixture-email
                         TextField("Email address", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).crossUiKeyboard(.email)
                         // crossui-node:fixture-status
@@ -24,13 +24,17 @@ struct CrossUiTypedFixture: View {
                             ProgressView("Signing in")
                         }
                         // crossui-node:fixture-submit
-                        Button(String(localized: "fixture.continue", defaultValue: "Continue")) { dispatch("submit", nil) }.disabled(!state.canSubmit)
+                        Button(String(localized: "fixture.continue", defaultValue: "Continue")) { dispatch("submit", nil) }.buttonStyle(.borderedProminent).disabled(!state.canSubmit)
                         // crossui-node:fixture-dark-mode
                         Toggle(String(localized: "fixture.dark_mode", defaultValue: "Dark Mode"), isOn: Binding(get: { state.darkMode }, set: { dispatch("dark_mode_changed", String(describing: $0)) }))
                         // crossui-node:fixture-appointment
                         DatePicker("", selection: Binding(get: { CrossUiTemporalCodec.decode(state.appointment, mode: .dateTime) }, set: { dispatch("appointment_changed", CrossUiTemporalCodec.encode($0, mode: .dateTime)) }), displayedComponents: [.date, .hourAndMinute])
                     }
                 }
+                .frame(maxWidth: 840, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             }.navigationTitle(String(localized: "fixture.title", defaultValue: "Typed binding fixture"))
         }
     }
@@ -105,6 +109,7 @@ private func CrossUiTypedFixtureAdaptiveContent<Content: View>(
             alignment: .top
         )
         .padding(.horizontal, 20)
+        .padding(.vertical, 16)
 }
 
 

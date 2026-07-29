@@ -8,7 +8,10 @@ import dev.crossui.dsl.emailInput
 import dev.crossui.dsl.event
 import dev.crossui.dsl.form
 import dev.crossui.dsl.loading
+import dev.crossui.dsl.picker
+import dev.crossui.dsl.pickerOption
 import dev.crossui.dsl.route
+import dev.crossui.dsl.tabNavigation
 import dev.crossui.dsl.text
 import dev.crossui.dsl.typedDocument
 import dev.crossui.dsl.enabledWhen
@@ -29,7 +32,9 @@ import dev.crossui.runtime.UiError
 import kotlinx.coroutines.CoroutineScope
 
 data class LoginState(
+    val activeRoute: String = "login",
     val email: String = "",
+    val language: String = "en",
     val message: String? = null,
     val submission: Async<Unit> = Async.Idle,
     val appointment: String? = null,
@@ -40,7 +45,9 @@ data class LoginState(
 }
 
 sealed interface LoginAction {
+    data class Navigate(val route: String) : LoginAction
     data class EmailChanged(val value: String) : LoginAction
+    data class LanguageChanged(val value: String) : LoginAction
     data class AppointmentChanged(val value: String?) : LoginAction
     data object Submit : LoginAction
     data object Succeeded : LoginAction
@@ -60,6 +67,7 @@ object LoginReducer : Reducer<LoginState, LoginAction, LoginEffect> {
         state: LoginState,
         action: LoginAction,
     ): Reduction<LoginState, LoginEffect> = when (action) {
+        is LoginAction.Navigate -> Reduction(state.copy(activeRoute = action.route))
         is LoginAction.EmailChanged -> Reduction(
             state.copy(
                 email = action.value,
@@ -67,6 +75,7 @@ object LoginReducer : Reducer<LoginState, LoginAction, LoginEffect> {
                 submission = Async.Idle,
             ),
         )
+        is LoginAction.LanguageChanged -> Reduction(state.copy(language = action.value))
         is LoginAction.AppointmentChanged -> Reduction(
             state.copy(appointment = action.value),
         )
@@ -117,7 +126,9 @@ fun createLoginConnector(
 
 object LoginActions : UiActionMapper<LoginAction> {
     override fun map(action: String, value: String?): LoginAction = when (action) {
+        "navigate" -> LoginAction.Navigate(value.orEmpty())
         "email_changed" -> LoginAction.EmailChanged(value.orEmpty())
+        "language_changed" -> LoginAction.LanguageChanged(value.orEmpty())
         "appointment_changed" -> LoginAction.AppointmentChanged(value)
         "submit" -> LoginAction.Submit
         else -> error("Unknown login action: $action")
@@ -129,27 +140,48 @@ object LoginUiProvider : UiDocumentProvider {
 }
 
 fun loginDocument(state: LoginState): UiDocument = typedDocument<LoginState, LoginAction>(
-    route("login", "Sign in") {
-        +form("login-form") {
-            +emailInput(
-                key = "email",
-                value = bind(LoginState::email),
-                placeholder = "Email address",
-                onChange = event("email_changed") { LoginAction.EmailChanged(it) },
-            ).accessibility("Email address", SemanticRole.TextField)
-            +text("message", bind(LoginState::statusText))
-            +datePicker(
-                key = "appointment",
-                value = bind(LoginState::appointment),
-                mode = DatePickerMode.DateTime,
-                onChange = "appointment_changed",
-            )
-            +loading("login-loading", "Signing in")
-                .visibleWhen(bind(LoginState::isSubmitting))
-            +button("submit", "Continue", event(LoginAction.Submit))
-                .enabledWhen(bind(LoginState::canSubmit))
-        }
-    },
+    tabNavigation(
+        key = "app",
+        active = bind(LoginState::activeRoute),
+        onChange = "navigate",
+        routes = listOf(
+            route("login", "Sign in") {
+                +form("login-form") {
+                    +emailInput(
+                        key = "email",
+                        value = bind(LoginState::email),
+                        placeholder = "Email address",
+                        onChange = event("email_changed") {
+                            LoginAction.EmailChanged(it)
+                        },
+                    ).accessibility("Email address", SemanticRole.TextField)
+                    +text("message", bind(LoginState::statusText))
+                    +datePicker(
+                        key = "appointment",
+                        value = bind(LoginState::appointment),
+                        mode = DatePickerMode.DateTime,
+                        onChange = "appointment_changed",
+                    )
+                    +loading("login-loading", "Signing in")
+                        .visibleWhen(bind(LoginState::isSubmitting))
+                    +button("submit", "Continue", event(LoginAction.Submit))
+                        .enabledWhen(bind(LoginState::canSubmit))
+                }
+            },
+            route("settings", "Settings") {
+                +picker(
+                    key = "language",
+                    initial = "en",
+                    selected = bind(LoginState::language),
+                    options = listOf(
+                        pickerOption("English", "en"),
+                        pickerOption("日本語", "ja"),
+                    ),
+                    onChange = "language_changed",
+                )
+            },
+        ),
+    ),
     stateType = "dev.crossui.integration.login.LoginState",
     actionType = "dev.crossui.integration.login.LoginAction",
     theme = Theme(android = AndroidTheme(dynamicColor = true)),

@@ -19,6 +19,7 @@ public sealed partial class CrossUiShowcase : UserControl
     public string LocalizedLanguageOptionZhCN => Localize("language.chinese", "中文");
     public string LocalizedLanguageOptionJaJP => Localize("language.japanese", "日本語");
     public string LocalizedAttachmentLabel => Localize("showcase.attach_document", "Attach document");
+    private bool suppressNavigationSelection = true;
 
     public CrossUiShowcase() : this((_, _) =>
         throw new InvalidOperationException(
@@ -32,6 +33,10 @@ public sealed partial class CrossUiShowcase : UserControl
         Dispatch = dispatch;
         State = new CrossUiShowcaseState(dispatch, DispatcherQueue);
         InitializeComponent();
+        State.PropertyChanged += OnNavigationStateChanged;
+        ApplyCrossUiNavigationAppSelection(State.ActiveRoute);
+        suppressNavigationSelection = false;
+
     }
 
     public void RefreshLocalization()
@@ -55,6 +60,50 @@ public sealed partial class CrossUiShowcase : UserControl
             LocalizationError?.Invoke(exception);
             return fallback;
         }
+    }
+
+    private void OnNavigationStateChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(State.ActiveRoute)) ApplyCrossUiNavigationAppSelection(State.ActiveRoute);
+    }
+
+    private void OnCrossUiNavigationAppSelectionChanged(
+        NavigationView sender,
+        NavigationViewSelectionChangedEventArgs args
+    )
+    {
+        if (args.SelectedItemContainer?.Tag is not string route)
+        {
+            return;
+        }
+        ShowCrossUiNavigationAppRoute(route);
+        if (!suppressNavigationSelection)
+        {
+            State.ActiveRoute = route;
+        }
+    }
+
+    public void ApplyCrossUiNavigationAppSelection(string route)
+    {
+        var wasSuppressed = suppressNavigationSelection;
+        suppressNavigationSelection = true;
+        foreach (var rawItem in CrossUiNavigationApp.MenuItems)
+        {
+            if (rawItem is NavigationViewItem item &&
+                item.Tag?.ToString() == route)
+            {
+                CrossUiNavigationApp.SelectedItem = item;
+                break;
+            }
+        }
+        ShowCrossUiNavigationAppRoute(route);
+        suppressNavigationSelection = wasSuppressed;
+    }
+
+    private void ShowCrossUiNavigationAppRoute(string route)
+    {
+        CrossUiNavigationAppRouteLogin.Visibility = route == "login" ? Visibility.Visible : Visibility.Collapsed;
+        CrossUiNavigationAppRouteSettings.Visibility = route == "settings" ? Visibility.Visible : Visibility.Collapsed;
     }
 
 
@@ -107,6 +156,44 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    private string activeRoute = "login";
+
+    public string ActiveRoute
+    {
+        get => activeRoute;
+        set => SetActiveRoute(value, true);
+    }
+
+    public void ApplyActiveRoute(string value) =>
+        SetActiveRoute(value, false);
+
+    private void SetActiveRoute(
+        string value,
+        bool dispatchChange
+    )
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetActiveRoute(value, dispatchChange)
+            );
+            return;
+        }
+        if (Equals(activeRoute, value))
+        {
+            return;
+        }
+        activeRoute = value;
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(ActiveRoute))
+        );
+        if (dispatchChange)
+        {
+            dispatch("navigate", value);
+        }
+    }
+
     private string email = "";
 
     public string Email
@@ -118,7 +205,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyEmail(string value) =>
         SetEmail(value, false);
 
-    private void SetEmail(string value, bool dispatchChange)
+    private void SetEmail(
+        string value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -127,20 +217,20 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(email, value))
         {
             return;
         }
-
         email = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Email)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(Email))
+        );
         if (dispatchChange)
         {
             dispatch("email_changed", value);
         }
     }
-
 
     private string password = "";
 
@@ -153,7 +243,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyPassword(string value) =>
         SetPassword(value, false);
 
-    private void SetPassword(string value, bool dispatchChange)
+    private void SetPassword(
+        string value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -162,20 +255,20 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(password, value))
         {
             return;
         }
-
         password = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Password)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(Password))
+        );
         if (dispatchChange)
         {
             dispatch("password_changed", value);
         }
     }
-
 
     private string search = "";
 
@@ -188,7 +281,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplySearch(string value) =>
         SetSearch(value, false);
 
-    private void SetSearch(string value, bool dispatchChange)
+    private void SetSearch(
+        string value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -197,20 +293,20 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(search, value))
         {
             return;
         }
-
         search = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Search)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(Search))
+        );
         if (dispatchChange)
         {
             dispatch("search_changed", value);
         }
     }
-
 
     private bool remember = false;
 
@@ -223,7 +319,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyRemember(bool value) =>
         SetRemember(value, false);
 
-    private void SetRemember(bool value, bool dispatchChange)
+    private void SetRemember(
+        bool value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -232,20 +331,20 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(remember, value))
         {
             return;
         }
-
         remember = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Remember)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(Remember))
+        );
         if (dispatchChange)
         {
             dispatch("remember_changed", value.ToString().ToLowerInvariant());
         }
     }
-
 
     private string volumeLabel = "";
 
@@ -258,7 +357,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyVolumeLabel(string value) =>
         SetVolumeLabel(value, false);
 
-    private void SetVolumeLabel(string value, bool dispatchChange)
+    private void SetVolumeLabel(
+        string value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -267,16 +369,16 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(volumeLabel, value))
         {
             return;
         }
-
         volumeLabel = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VolumeLabel)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(VolumeLabel))
+        );
     }
-
 
     private double volume = 0.5d;
 
@@ -289,7 +391,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyVolume(double value) =>
         SetVolume(value, false);
 
-    private void SetVolume(double value, bool dispatchChange)
+    private void SetVolume(
+        double value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -298,20 +403,20 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(volume, value))
         {
             return;
         }
-
         volume = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Volume)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(Volume))
+        );
         if (dispatchChange)
         {
             dispatch("volume_changed", value.ToString(CultureInfo.InvariantCulture));
         }
     }
-
 
     private bool termsAccepted = false;
 
@@ -324,7 +429,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyTermsAccepted(bool value) =>
         SetTermsAccepted(value, false);
 
-    private void SetTermsAccepted(bool value, bool dispatchChange)
+    private void SetTermsAccepted(
+        bool value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -333,20 +441,20 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(termsAccepted, value))
         {
             return;
         }
-
         termsAccepted = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TermsAccepted)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(TermsAccepted))
+        );
         if (dispatchChange)
         {
             dispatch("terms_changed", value.ToString().ToLowerInvariant());
         }
     }
-
 
     private string language = "en";
 
@@ -359,7 +467,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyLanguage(string value) =>
         SetLanguage(value, false);
 
-    private void SetLanguage(string value, bool dispatchChange)
+    private void SetLanguage(
+        string value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -368,20 +479,20 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(language, value))
         {
             return;
         }
-
         language = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Language)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(Language))
+        );
         if (dispatchChange)
         {
             dispatch("language_changed", value);
         }
     }
-
 
     private string pickerStatus = "";
 
@@ -394,7 +505,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyPickerStatus(string value) =>
         SetPickerStatus(value, false);
 
-    private void SetPickerStatus(string value, bool dispatchChange)
+    private void SetPickerStatus(
+        string value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -403,16 +517,16 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(pickerStatus, value))
         {
             return;
         }
-
         pickerStatus = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PickerStatus)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(PickerStatus))
+        );
     }
-
 
     private bool darkMode = false;
 
@@ -425,7 +539,10 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
     public void ApplyDarkMode(bool value) =>
         SetDarkMode(value, false);
 
-    private void SetDarkMode(bool value, bool dispatchChange)
+    private void SetDarkMode(
+        bool value,
+        bool dispatchChange
+    )
     {
         if (!dispatcherQueue.HasThreadAccess)
         {
@@ -434,18 +551,18 @@ public sealed class CrossUiShowcaseState : INotifyPropertyChanged
             );
             return;
         }
-
         if (Equals(darkMode, value))
         {
             return;
         }
-
         darkMode = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DarkMode)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(DarkMode))
+        );
         if (dispatchChange)
         {
             dispatch("dark_mode_changed", value.ToString().ToLowerInvariant());
         }
     }
-
 }

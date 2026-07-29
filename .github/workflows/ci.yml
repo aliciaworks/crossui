@@ -16,7 +16,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: gradle
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test
         run: ./gradlew build verifySourceFileSize
@@ -36,7 +35,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: gradle
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-dotnet@v4
         with:
@@ -58,7 +56,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: gradle
       - uses: gradle/actions/setup-gradle@v4
       - name: Compile Apple settings adapter
         run: |

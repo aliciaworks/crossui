@@ -93,9 +93,9 @@ class CompilerTest {
         }.content
         val swift = generated.single { it.target == ExportTarget.SwiftUi }.content
 
-        assertTrue(compose.contains("if (maxWidth >= 600.dp)"))
-        assertTrue(compose.contains("NavigationRailItem"))
-        assertTrue(compose.contains("NavigationBarItem"))
+        assertTrue(compose.contains("NavigationSuiteScaffold("))
+        assertTrue(compose.contains("WindowInsets.safeDrawing"))
+        assertTrue(!compose.contains("if (maxWidth >= 600.dp)"))
         assertTrue(swift.contains(".tabViewStyle(.sidebarAdaptable)"))
     }
 
@@ -267,7 +267,7 @@ class CompilerTest {
             typeName = "LoginView",
         ).single().content
 
-        assertTrue(generated.contains("Text(state.status)"))
+        assertTrue(generated.contains("Text(state.status, style ="))
         assertTrue(generated.contains("if (state.loading)"))
         assertTrue(generated.contains("enabled = state.canSubmit"))
     }

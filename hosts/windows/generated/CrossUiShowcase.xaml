@@ -3,72 +3,128 @@
     x:Class="CrossUi.Generated.CrossUiShowcase"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer>
-        <!-- crossui-node:app -->
-        <NavigationView PaneDisplayMode="Top">
-            <NavigationView.Content>
-                <!-- crossui-node:login -->
-                <StackPanel Spacing="16">
-                    <!-- crossui-node:login-content -->
-                    <StackPanel Orientation="Vertical" Spacing="16">
-                        <!-- crossui-node:heading -->
-                        <TextBlock Text="{x:Bind LocalizedHeadingValue, Mode=OneTime}" />
-                        <!-- crossui-node:logo -->
-                        <Image Source="https://example.com/logo.png" AutomationProperties.Name="App logo" />
-                        <!-- crossui-node:email -->
-                        <TextBox Text="{x:Bind State.Email, Mode=TwoWay}" PlaceholderText="you@example.com" Tag="email_changed" AutomationProperties.Name="Email" />
-                        <!-- crossui-node:password -->
-                        <PasswordBox Password="{x:Bind State.Password, Mode=TwoWay}" PlaceholderText="Password" Tag="password_changed" AutomationProperties.Name="Password" />
-                        <!-- crossui-node:search -->
-                        <TextBox Text="{x:Bind State.Search, Mode=TwoWay}" PlaceholderText="Search…" Tag="search_changed" />
-                        <!-- crossui-node:remember -->
-                        <ToggleSwitch Header="Remember me" IsOn="{x:Bind State.Remember, Mode=TwoWay}" Tag="remember_changed" />
-                        <!-- crossui-node:volume-label -->
-                        <TextBlock Text="{x:Bind State.VolumeLabel, Mode=OneWay}" />
-                        <!-- crossui-node:volume -->
-                        <Slider Value="{x:Bind State.Volume, Mode=TwoWay}" Minimum="0.0" Maximum="1.0" StepFrequency="0.05" Tag="volume_changed" AutomationProperties.Name="Volume" />
-                        <!-- crossui-node:terms -->
-                        <CheckBox Content="I agree to the Terms" IsChecked="{x:Bind State.TermsAccepted, Mode=TwoWay}" Tag="terms_changed" />
-                        <!-- crossui-node:chips -->
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <!-- crossui-node:ios -->
-                            <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="iOS" /></Border>
-                            <!-- crossui-node:android -->
-                            <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="Android" /></Border>
-                            <!-- crossui-node:active -->
-                            <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="Active" /></Border>
+    <!-- crossui-node:app -->
+    <NavigationView
+        x:Name="CrossUiNavigationApp"
+        IsBackButtonVisible="Collapsed"
+        IsSettingsVisible="False"
+        PaneDisplayMode="Auto"
+        SelectionChanged="OnCrossUiNavigationAppSelectionChanged">
+        <NavigationView.MenuItems>
+            <NavigationViewItem
+                Content="Sign in"
+                Tag="login">
+                <NavigationViewItem.Icon>
+                    <FontIcon FontFamily="Segoe UI" Glyph="S" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                Content="Settings"
+                Tag="settings">
+                <NavigationViewItem.Icon>
+                    <FontIcon FontFamily="Segoe UI" Glyph="S" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+        <NavigationView.Content>
+            <ScrollViewer
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalContentAlignment="Stretch"
+                VerticalScrollBarVisibility="Auto">
+                <Grid x:Name="CrossUiNavigationAppContentRoot" Padding="32,24,32,32">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="CrossUiNavigationAppContentRootLayoutStates">
+                            <VisualState x:Name="CrossUiNavigationAppContentRootNarrow">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="0" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Target="CrossUiNavigationAppContentRoot.Padding" Value="16,16,16,24" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="CrossUiNavigationAppContentRootExpanded">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="640" />
+                                </VisualState.StateTriggers>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                    <Grid MaxWidth="1064" HorizontalAlignment="Center">
+                    <Grid x:Name="CrossUiNavigationAppRouteLogin" Visibility="Visible">
+                        <!-- crossui-node:login -->
+                        <StackPanel Spacing="16">
+                            <!-- crossui-node:login-content -->
+                            <StackPanel Orientation="Vertical" Spacing="16">
+                                <!-- crossui-node:heading -->
+                                <TextBlock Text="{x:Bind LocalizedHeadingValue, Mode=OneTime}" Style="{ThemeResource DisplayTextBlockStyle}" TextWrapping="Wrap" />
+                                <!-- crossui-node:logo -->
+                                <Image Source="https://example.com/logo.png" AutomationProperties.Name="App logo" />
+                                <!-- crossui-node:email -->
+                                <TextBox Text="{x:Bind State.Email, Mode=TwoWay}" PlaceholderText="you@example.com" Tag="email_changed" AutomationProperties.Name="Email" />
+                                <!-- crossui-node:password -->
+                                <PasswordBox Password="{x:Bind State.Password, Mode=TwoWay}" PlaceholderText="Password" Tag="password_changed" AutomationProperties.Name="Password" />
+                                <!-- crossui-node:search -->
+                                <TextBox Text="{x:Bind State.Search, Mode=TwoWay}" PlaceholderText="Search…" Tag="search_changed" />
+                                <!-- crossui-node:remember -->
+                                <ToggleSwitch Header="Remember me" IsOn="{x:Bind State.Remember, Mode=TwoWay}" Tag="remember_changed" />
+                                <!-- crossui-node:volume-label -->
+                                <TextBlock Text="{x:Bind State.VolumeLabel, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap" />
+                                <!-- crossui-node:volume -->
+                                <Slider Value="{x:Bind State.Volume, Mode=TwoWay}" Minimum="0.0" Maximum="1.0" StepFrequency="0.05" Tag="volume_changed" AutomationProperties.Name="Volume" />
+                                <!-- crossui-node:terms -->
+                                <CheckBox Content="I agree to the Terms" IsChecked="{x:Bind State.TermsAccepted, Mode=TwoWay}" Tag="terms_changed" />
+                                <!-- crossui-node:chips -->
+                                <StackPanel Orientation="Horizontal" Spacing="16">
+                                    <!-- crossui-node:ios -->
+                                    <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="iOS" /></Border>
+                                    <!-- crossui-node:android -->
+                                    <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="Android" /></Border>
+                                    <!-- crossui-node:active -->
+                                    <Border CornerRadius="12" Padding="8,4" Background="{ThemeResource AccentFillColorDefaultBrush}"><TextBlock Text="Active" /></Border>
+                                </StackPanel>
+                                <!-- crossui-node:separator -->
+                                <Border Height="1" Background="{ThemeResource SystemControlForegroundBaseLowBrush}" />
+                                <!-- crossui-node:language -->
+                                <ComboBox SelectedValue="{x:Bind State.Language, Mode=TwoWay}" SelectedValuePath="Tag" Tag="language_changed">
+                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionEnUS, Mode=OneTime}" Tag="en-US" />
+                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionZhCN, Mode=OneTime}" Tag="zh-CN" />
+                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionJaJP, Mode=OneTime}" Tag="ja-JP" />
+                                </ComboBox>
+                                <!-- crossui-node:actions -->
+                                <StackPanel Orientation="Horizontal" Spacing="16">
+                                    <!-- crossui-node:submit -->
+                                    <Button Content="Continue" Tag="submit" Click="OnAction" Style="{StaticResource AccentButtonStyle}" AutomationProperties.Name="Continue" />
+                                    <!-- crossui-node:delete -->
+                                    <Button Content="Delete" Tag="show_delete" Click="OnAction" AutomationProperties.Name="Delete account" />
+                                </StackPanel>
+                                <!-- crossui-node:attachment -->
+                                <Button Content="{x:Bind LocalizedAttachmentLabel, Mode=OneTime}" Tag="pick_attachment" Click="OnAction" Style="{StaticResource AccentButtonStyle}" />
+                                <!-- crossui-node:photos -->
+                                <Button Content="Choose photos" Tag="pick_photos" Click="OnAction" Style="{StaticResource AccentButtonStyle}" />
+                                <!-- crossui-node:picker-status -->
+                                <TextBlock Text="{x:Bind State.PickerStatus, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap" />
+                                <!-- crossui-node:summary -->
+                                <Border CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                    <!-- crossui-node:summary-copy -->
+                                    <TextBlock Text="Generated native controls" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap" />
+                                </Border>
+                                <!-- crossui-node:legal -->
+                                <TextBlock Text="By continuing you agree to our Terms" Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                            </StackPanel>
                         </StackPanel>
-                        <!-- crossui-node:separator -->
-                        <Border Height="1" Background="{ThemeResource SystemControlForegroundBaseLowBrush}" />
-                        <!-- crossui-node:language -->
-                        <ComboBox SelectedValue="{x:Bind State.Language, Mode=TwoWay}" SelectedValuePath="Tag" Tag="language_changed">
-                            <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionEnUS, Mode=OneTime}" Tag="en-US" />
-                            <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionZhCN, Mode=OneTime}" Tag="zh-CN" />
-                            <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionJaJP, Mode=OneTime}" Tag="ja-JP" />
-                        </ComboBox>
-                        <!-- crossui-node:actions -->
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <!-- crossui-node:submit -->
-                            <Button Content="Continue" Tag="submit" Click="OnAction" AutomationProperties.Name="Continue" />
-                            <!-- crossui-node:delete -->
-                            <Button Content="Delete" Tag="show_delete" Click="OnAction" AutomationProperties.Name="Delete account" />
+                    </Grid>
+                    <Grid x:Name="CrossUiNavigationAppRouteSettings" Visibility="Collapsed">
+                        <!-- crossui-node:settings -->
+                        <StackPanel Spacing="16">
+                            <!-- crossui-node:settings-title -->
+                            <TextBlock Text="App Preferences" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" AutomationProperties.Name="App Preferences" />
+                            <!-- crossui-node:dark-mode -->
+                            <ToggleSwitch Header="Dark Mode" IsOn="{x:Bind State.DarkMode, Mode=TwoWay}" Tag="dark_mode_changed" />
                         </StackPanel>
-                        <!-- crossui-node:attachment -->
-                        <Button Content="{x:Bind LocalizedAttachmentLabel, Mode=OneTime}" Tag="pick_attachment" Click="OnAction" />
-                        <!-- crossui-node:photos -->
-                        <Button Content="Choose photos" Tag="pick_photos" Click="OnAction" />
-                        <!-- crossui-node:picker-status -->
-                        <TextBlock Text="{x:Bind State.PickerStatus, Mode=OneWay}" />
-                        <!-- crossui-node:summary -->
-                        <Border CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                            <!-- crossui-node:summary-copy -->
-                            <TextBlock Text="Generated native controls" />
-                        </Border>
-                        <!-- crossui-node:legal -->
-                        <TextBlock Text="By continuing you agree to our Terms" />
-                    </StackPanel>
-                </StackPanel>
-            </NavigationView.Content>
-        </NavigationView>
-    </ScrollViewer>
+                    </Grid>
+                    </Grid>
+                </Grid>
+            </ScrollViewer>
+        </NavigationView.Content>
+    </NavigationView>
 </UserControl>

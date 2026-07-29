@@ -232,6 +232,10 @@ class CrossUiPlugin : Plugin<Project> {
                     configuration.name,
                     "androidx.lifecycle:lifecycle-runtime-compose:2.11.0",
                 )
+                dependencies.add(
+                    configuration.name,
+                    "androidx.compose.material3:material3-adaptive-navigation-suite:1.4.0",
+                )
             }
             extensions.configure(KotlinMultiplatformExtension::class.java) { kotlin ->
                 kotlin.sourceSets.matching { it.name == "androidMain" }.configureEach {
