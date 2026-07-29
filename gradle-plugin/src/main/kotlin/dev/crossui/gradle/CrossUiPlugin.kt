@@ -225,6 +225,14 @@ class CrossUiPlugin : Plugin<Project> {
         }
 
         pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+            configurations.matching {
+                it.name == "androidMainImplementation"
+            }.configureEach { configuration ->
+                dependencies.add(
+                    configuration.name,
+                    "androidx.lifecycle:lifecycle-runtime-compose:2.11.0",
+                )
+            }
             extensions.configure(KotlinMultiplatformExtension::class.java) { kotlin ->
                 kotlin.sourceSets.matching { it.name == "androidMain" }.configureEach {
                     it.kotlin.srcDir(extension.outputDirectory.dir("compose"))

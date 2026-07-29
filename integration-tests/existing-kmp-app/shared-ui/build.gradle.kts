@@ -10,8 +10,8 @@ kotlin {
 
     android {
         namespace = "dev.crossui.integration.shared"
-        compileSdk = 35
-        minSdk = 24
+        compileSdk = 37
+        minSdk = 31
         withHostTest {}
     }
 

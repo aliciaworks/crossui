@@ -13,6 +13,7 @@ private data class WinUiFixtureState(
     val isSubmitting: Boolean = false,
     val canSubmit: Boolean = true,
     val darkMode: Boolean = false,
+    val appointment: String? = null,
 )
 
 private sealed interface WinUiFixtureAction {
@@ -21,26 +22,83 @@ private sealed interface WinUiFixtureAction {
     data object Submit : WinUiFixtureAction
 }
 
-fun showcaseDocument(): UiDocument = document(
+private data class ShowcaseState(
+    val email: String = "",
+    val password: String = "",
+    val search: String = "",
+    val remember: Boolean = false,
+    val volume: Double = 0.5,
+    val volumeLabel: String = "Volume: 50%",
+    val termsAccepted: Boolean = false,
+    val language: String = "en-US",
+    val darkMode: Boolean = false,
+    val pickerStatus: String = "No file selected",
+)
+
+private sealed interface ShowcaseAction {
+    data class VolumeChanged(val value: Double) : ShowcaseAction
+    data class LanguageChanged(val value: String) : ShowcaseAction
+    data object PickAttachment : ShowcaseAction
+    data object PickPhotos : ShowcaseAction
+}
+
+fun showcaseDocument(): UiDocument = typedDocument<ShowcaseState, ShowcaseAction>(
     tabNavigation(
         "app",
         "login",
         listOf(
             route("login", "Sign in") {
                 +vstack("login-content") {
-                    +display("heading", "Welcome")
+                    +display(
+                        "heading",
+                        localized("showcase.welcome", "Welcome"),
+                    )
                     +image("logo", "https://example.com/logo.png", "App logo")
-                    +emailInput("email", "", "you@example.com", "email_changed")
+                    +emailInput(
+                        "email",
+                        bind(ShowcaseState::email),
+                        "you@example.com",
+                        "email_changed",
+                    )
                         .accessibility("Email", SemanticRole.TextField)
-                    +secureInput("password", "", "Password", "password_changed")
+                    +secureInput(
+                        "password",
+                        bind(ShowcaseState::password),
+                        "Password",
+                        "password_changed",
+                    )
                         .returnKey(ReturnKey.Go)
                         .accessibility("Password", SemanticRole.TextField)
-                    +searchInput("search", "", "Search…", "search_changed")
-                    +toggle("remember", "Remember me", false, "remember_changed")
-                    +caption("volume-label", "Volume: 50%")
-                    +slider("volume", 0.5, 0.0, 1.0, 0.05, "volume_changed")
+                    +input(
+                        "search",
+                        bind(ShowcaseState::search),
+                        "search_changed",
+                        "Search…",
+                        returnKey = ReturnKey.Search,
+                    )
+                    +toggle(
+                        "remember",
+                        "Remember me",
+                        bind(ShowcaseState::remember),
+                        "remember_changed",
+                    )
+                    +text("volume-label", bind(ShowcaseState::volumeLabel))
+                    +slider(
+                        "volume",
+                        0.5,
+                        bind(ShowcaseState::volume),
+                        0.0,
+                        1.0,
+                        0.05,
+                        "volume_changed",
+                    )
                         .accessibility("Volume", SemanticRole.Slider)
-                    +checkbox("terms", "I agree to the Terms", false, "terms_changed")
+                    +checkbox(
+                        "terms",
+                        "I agree to the Terms",
+                        bind(ShowcaseState::termsAccepted),
+                        "terms_changed",
+                    )
                     +hstack("chips") {
                         +inputChip("ios", "iOS")
                         +inputChip("android", "Android")
@@ -50,10 +108,20 @@ fun showcaseDocument(): UiDocument = document(
                     +picker(
                         "language",
                         "en",
+                        bind(ShowcaseState::language),
                         listOf(
-                            pickerOption("English", "en"),
-                            pickerOption("中文", "zh"),
-                            pickerOption("日本語", "ja"),
+                            pickerOption(
+                                localized("language.english", "English"),
+                                "en-US",
+                            ),
+                            pickerOption(
+                                localized("language.chinese", "中文"),
+                                "zh-CN",
+                            ),
+                            pickerOption(
+                                localized("language.japanese", "日本語"),
+                                "ja-JP",
+                            ),
                         ),
                         "language_changed",
                     )
@@ -69,13 +137,31 @@ fun showcaseDocument(): UiDocument = document(
                             .iosPresentation(PresentationStyle.Sheet)
                             .androidElevation(8f)
                     }
+                    +filePicker(
+                        "attachment",
+                        localized("showcase.attach_document", "Attach document"),
+                        "pick_attachment",
+                        mimeTypes = listOf("application/pdf"),
+                    )
+                    +mediaPicker(
+                        "photos",
+                        "Choose photos",
+                        "pick_photos",
+                        maxSelection = 3,
+                    )
+                    +text("picker-status", bind(ShowcaseState::pickerStatus))
                     +card("summary", listOf(text("summary-copy", "Generated native controls")))
                     +footnote("legal", "By continuing you agree to our Terms")
                 }
             },
             route("settings", "Settings") {
                 +title("settings-title", "App Preferences")
-                +toggle("dark-mode", "Dark Mode", false, "dark_mode_changed")
+                +toggle(
+                    "dark-mode",
+                    "Dark Mode",
+                    bind(ShowcaseState::darkMode),
+                    "dark_mode_changed",
+                )
             },
         ),
     ),
@@ -120,6 +206,12 @@ private fun winUiFixtureDocument(): UiDocument =
                     event("dark_mode_changed") {
                         WinUiFixtureAction.DarkModeChanged(it.toBoolean())
                     },
+                )
+                +datePicker(
+                    "fixture-appointment",
+                    bind(WinUiFixtureState::appointment),
+                    DatePickerMode.DateTime,
+                    "appointment_changed",
                 )
             }
         },

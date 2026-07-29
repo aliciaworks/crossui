@@ -13,11 +13,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.crossui.runtime.UiActionMapper
+import dev.crossui.runtime.UiConnector
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CrossUiShowcase(dispatch: (action: String, value: String?) -> Unit) {
+fun CrossUiShowcase(state: ShowcaseState, dispatch: (action: String, value: String?) -> Unit) {
     // crossui-node:app
     Column {
         NavigationBar {
@@ -29,23 +33,23 @@ fun CrossUiShowcase(dispatch: (action: String, value: String?) -> Unit) {
             // crossui-node:login-content
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // crossui-node:heading
-                Text("Welcome")
+                Text(stringResource(R.string.showcase_welcome))
                 // crossui-node:logo
                 AsyncImage(model = "https://example.com/logo.png", contentDescription = "App logo")
                 // crossui-node:email
-                OutlinedTextField(value = "", onValueChange = { dispatch("email_changed", it) }, label = { Text("you@example.com") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+                OutlinedTextField(value = state.email, onValueChange = { dispatch("email_changed", it) }, label = { Text("you@example.com") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
                 // crossui-node:password
-                OutlinedTextField(value = "", onValueChange = { dispatch("password_changed", it) }, label = { Text("Password") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), visualTransformation = PasswordVisualTransformation())
+                OutlinedTextField(value = state.password, onValueChange = { dispatch("password_changed", it) }, label = { Text("Password") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), visualTransformation = PasswordVisualTransformation())
                 // crossui-node:search
-                OutlinedTextField(value = "", onValueChange = { dispatch("search_changed", it) }, label = { Text("Search…") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+                OutlinedTextField(value = state.search, onValueChange = { dispatch("search_changed", it) }, label = { Text("Search…") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
                 // crossui-node:remember
-                Row { Switch(checked = false, onCheckedChange = { dispatch("remember_changed", it.toString()) }, enabled = true); Text("Remember me") }
+                Row { Switch(checked = state.remember, onCheckedChange = { dispatch("remember_changed", it.toString()) }, enabled = true); Text("Remember me") }
                 // crossui-node:volume-label
-                Text("Volume: 50%")
+                Text(state.volumeLabel)
                 // crossui-node:volume
-                Slider(value = 0.5f, onValueChange = { dispatch("volume_changed", it.toString()) }, valueRange = 0.0f..1.0f, enabled = true)
+                Slider(value = state.volume, onValueChange = { dispatch("volume_changed", it.toString()) }, valueRange = 0.0f..1.0f, enabled = true)
                 // crossui-node:terms
-                Row { Checkbox(checked = false, onCheckedChange = { dispatch("terms_changed", it.toString()) }, enabled = true); Text("I agree to the Terms") }
+                Row { Checkbox(checked = state.termsAccepted, onCheckedChange = { dispatch("terms_changed", it.toString()) }, enabled = true); Text("I agree to the Terms") }
                 // crossui-node:chips
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     // crossui-node:ios
@@ -58,7 +62,7 @@ fun CrossUiShowcase(dispatch: (action: String, value: String?) -> Unit) {
                 // crossui-node:separator
                 HorizontalDivider()
                 // crossui-node:language
-                Column { Text("English"); TextButton(onClick = { dispatch("language_changed", "en") }) { Text("English") }; TextButton(onClick = { dispatch("language_changed", "zh") }) { Text("中文") }; TextButton(onClick = { dispatch("language_changed", "ja") }) { Text("日本語") } }
+                Column { Text(state.language); TextButton(onClick = { dispatch("language_changed", "en-US") }) { Text(stringResource(R.string.language_english)) }; TextButton(onClick = { dispatch("language_changed", "zh-CN") }) { Text(stringResource(R.string.language_chinese)) }; TextButton(onClick = { dispatch("language_changed", "ja-JP") }) { Text(stringResource(R.string.language_japanese)) } }
                 // crossui-node:actions
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     // crossui-node:submit
@@ -66,6 +70,12 @@ fun CrossUiShowcase(dispatch: (action: String, value: String?) -> Unit) {
                     // crossui-node:delete
                     Button(onClick = { dispatch("show_delete", null) }, enabled = true) { Text("Delete") }
                 }
+                // crossui-node:attachment
+                Button(onClick = { dispatch("pick_attachment", null) }, enabled = true) { Text(stringResource(R.string.showcase_attach_document)) }
+                // crossui-node:photos
+                Button(onClick = { dispatch("pick_photos", null) }, enabled = true) { Text("Choose photos") }
+                // crossui-node:picker-status
+                Text(state.pickerStatus)
                 // crossui-node:summary
                 Card { Column(Modifier.padding(16.dp)) {
                         // crossui-node:summary-copy
@@ -77,4 +87,26 @@ fun CrossUiShowcase(dispatch: (action: String, value: String?) -> Unit) {
             }
         }
     }
+}
+@Composable
+fun CrossUiShowcase(
+    connector: UiConnector<ShowcaseState, ShowcaseAction>,
+    actions: UiActionMapper<ShowcaseAction>,
+) {
+    val state by connector.states.collectAsStateWithLifecycle()
+    CrossUiShowcase(state = state) { action, value ->
+        connector.send(actions.map(action, value))
+    }
+}
+
+
+@Composable
+fun CrossUiShowcaseTheme(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val colorScheme = if (isSystemInDarkTheme()) {
+        dynamicDarkColorScheme(context)
+    } else {
+        dynamicLightColorScheme(context)
+    }
+    MaterialTheme(colorScheme = colorScheme, content = content)
 }

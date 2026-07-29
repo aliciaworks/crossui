@@ -1,6 +1,9 @@
 package dev.crossui.compiler
 
 import dev.crossui.dsl.*
+import dev.crossui.ir.DatePickerMode
+import dev.crossui.ir.AndroidTheme
+import dev.crossui.ir.Theme
 import dev.crossui.ir.NodeKind
 import dev.crossui.ir.Platform
 import kotlinx.serialization.json.JsonNull
@@ -14,10 +17,12 @@ class CompilerTest {
         val status: String = "",
         val loading: Boolean = false,
         val canSubmit: Boolean = true,
+        val language: String = "en",
     )
     private sealed interface TestAction {
         data class EmailChanged(val value: String) : TestAction
     }
+    private data class TemporalState(val value: String? = null)
 
     private val document = document(
         route("home", "Home", listOf(title("title", "Hello"), button("go", "Go", "go"))),
@@ -34,6 +39,23 @@ class CompilerTest {
                 .contains("<UserControl"),
         )
         assertTrue(sources.any { it.relativePath == "HomeView.xaml.cs" })
+    }
+
+    @Test
+    fun composeEmitsOptInDynamicColorThemeAdapter() {
+        val source = document.copy(
+            theme = Theme(android = AndroidTheme(dynamicColor = true)),
+        )
+        val generated = CrossUiCompiler.generate(
+            source,
+            setOf(ExportTarget.JetpackCompose),
+            typeName = "HomeView",
+        ).single().content
+
+        assertTrue(generated.contains("fun HomeViewTheme"))
+        assertTrue(generated.contains("dynamicDarkColorScheme(context)"))
+        assertTrue(generated.contains("dynamicLightColorScheme(context)"))
+        assertTrue(generated.contains("isSystemInDarkTheme()"))
     }
 
     @Test
@@ -90,11 +112,56 @@ class CompilerTest {
         assertTrue(generated.content.contains("value = state.email"))
         assertTrue(generated.content.contains("connector: UiConnector<TestState, TestAction>"))
         assertTrue(generated.content.contains("connector.send(actions.map(action, value))"))
+        assertTrue(generated.content.contains("collectAsStateWithLifecycle()"))
         assertTrue(generated.content.contains("// crossui-node:email"))
         val mapping = generated.mappings.single { it.nodeKey == "email" }
         assertTrue(mapping.generatedLine > 0)
         assertTrue(mapping.source?.file == "ui/login.kt")
         assertTrue(generated.relativePath == "LoginView.kt")
+    }
+
+    @Test
+    fun typedDocumentsRejectUnboundInteractiveControls() {
+        assertFailsWith<IllegalArgumentException> {
+            typedDocument<TestState, TestAction>(
+                input("email", "", "email_changed"),
+            )
+        }
+    }
+
+    @Test
+    fun temporalValuesUseOneCanonicalWireFormatOnEveryPlatform() {
+        val source = typedDocument<TemporalState, TestAction>(
+            datePicker(
+                "appointment",
+                bind(TemporalState::value),
+                DatePickerMode.DateTime,
+                "appointment_changed",
+            ),
+        )
+        val generated = CrossUiCompiler.generate(source, typeName = "AppointmentView")
+        val swift = generated.single { it.target == ExportTarget.SwiftUi }.content
+        val compose = generated.single {
+            it.target == ExportTarget.JetpackCompose
+        }.content
+        val xaml = generated.single {
+            it.relativePath == "AppointmentView.xaml"
+        }.content
+        val csharp = generated.single {
+            it.relativePath == "AppointmentView.xaml.cs"
+        }.content
+
+        assertTrue(swift.contains("CrossUiTemporalCodec.encode"))
+        assertTrue(swift.contains("displayedComponents: [.date, .hourAndMinute]"))
+        assertTrue(compose.contains("CrossUiTemporalCodec.dateTime"))
+        assertTrue(compose.contains("yyyy-MM-dd'T'HH:mm:ssX"))
+        assertTrue(xaml.contains("Date=\"{x:Bind State.ValueDate, Mode=TwoWay}\""))
+        assertTrue(
+            xaml.contains(
+                "SelectedTime=\"{x:Bind State.ValueTime, Mode=TwoWay}\"",
+            ),
+        )
+        assertTrue(csharp.contains("yyyy-MM-dd'T'HH:mm:ss'Z'"))
     }
 
     @Test
@@ -105,6 +172,12 @@ class CompilerTest {
                 +loading("loading").visibleWhen(bind(TestState::loading))
                 +button("submit", "Submit", "submit")
                     .enabledWhen(bind(TestState::canSubmit))
+                +picker(
+                    "language",
+                    bind(TestState::language),
+                    listOf(pickerOption("English", "en")),
+                    "language_changed",
+                )
             },
         )
 
@@ -189,6 +262,12 @@ class CompilerTest {
                 +loading("loading").visibleWhen(bind(TestState::loading))
                 +button("submit", "Submit", "submit")
                     .enabledWhen(bind(TestState::canSubmit))
+                +picker(
+                    "language",
+                    bind(TestState::language),
+                    listOf(pickerOption("English", "en")),
+                    "language_changed",
+                )
             },
         )
 
@@ -201,6 +280,7 @@ class CompilerTest {
         val codeBehind = generated.single { it.relativePath == "LoginView.xaml.cs" }.content
 
         assertTrue(xaml.contains("BooleanToVisibility(State.Loading)"))
+        assertTrue(xaml.contains("SelectedValuePath=\"Tag\""))
         assertTrue(xaml.contains("Click=\"OnAction\""))
         assertTrue(codeBehind.contains("INotifyPropertyChanged"))
         assertTrue(codeBehind.contains("public void ApplyEmail(string value)"))
@@ -244,6 +324,8 @@ class CompilerTest {
         assertTrue(xaml.contains("LocalizedWelcomeValue"))
         assertTrue(csharp.contains("ResourceLoader resourceLoader = new()"))
         assertTrue(csharp.contains("Localize(\"home.welcome\", \"Welcome\")"))
+        assertTrue(csharp.contains("public void RefreshLocalization()"))
+        assertTrue(csharp.contains("LocalizationError?.Invoke(exception)"))
     }
 
     @Test
@@ -284,5 +366,32 @@ class CompilerTest {
             .content
         assertTrue(csharp.contains("AppStrings.Resolve(\"settings.save\""))
         assertTrue(!csharp.contains("ResourceLoader resourceLoader"))
+    }
+
+    @Test
+    fun contentPickersLowerToTypedRequestActionsOnEveryPlatform() {
+        val source = document(
+            mediaPicker(
+                key = "photos",
+                label = localized("profile.photos", "Choose photos"),
+                onRequest = "pick_photos",
+                maxSelection = 3,
+            ),
+        )
+
+        val generated = CrossUiCompiler.generate(source, typeName = "ProfileView")
+
+        assertTrue(
+            generated.single { it.target == ExportTarget.SwiftUi }
+                .content.contains("dispatch(\"pick_photos\", nil)"),
+        )
+        assertTrue(
+            generated.single { it.target == ExportTarget.JetpackCompose }
+                .content.contains("dispatch(\"pick_photos\", null)"),
+        )
+        assertTrue(
+            generated.single { it.relativePath == "ProfileView.xaml" }
+                .content.contains("Tag=\"pick_photos\" Click=\"OnAction\""),
+        )
     }
 }

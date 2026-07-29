@@ -236,7 +236,7 @@ class LifecycleTasks(
 }
 
 enum class PlatformCapability {
-    Camera, Location, Biometrics, Notifications, FilePicker, Share, Clipboard,
+    Camera, Location, Biometrics, Notifications, FilePicker, MediaPicker, Share, Clipboard,
 }
 
 class CapabilitySet private constructor(

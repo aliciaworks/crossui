@@ -9,8 +9,8 @@ kotlin {
     jvm()
     android {
         namespace = "dev.crossui.ir"
-        compileSdk = 35
-        minSdk = 24
+        compileSdk = 37
+        minSdk = 31
         withHostTest {}
     }
     js {

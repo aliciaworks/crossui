@@ -133,4 +133,24 @@ class ModelTest {
 
         assertFails { document.validate() }
     }
+
+    @Test
+    fun contentPickerRoundTripsAndRejectsInvalidMediaRequests() {
+        val picker = NodeKind.ContentPicker(
+            label = "Choose photos",
+            request = ContentPickerRequest.Media(setOf(MediaKind.Image), 3),
+            onRequest = "pick_photos",
+        )
+        val document = UiDocument(root = Node(NodeKey("photos"), picker))
+
+        assertEquals(document, UiDocument.fromJson(document.toJson()))
+        assertFails {
+            UiDocument(
+                root = Node(
+                    NodeKey("broken"),
+                    picker.copy(request = ContentPickerRequest.Media(emptySet(), 0)),
+                ),
+            ).validate()
+        }
+    }
 }

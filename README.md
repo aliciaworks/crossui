@@ -72,6 +72,11 @@ not require JSON in application code. See
 [`docs/existing-kmp-integration.md`](docs/existing-kmp-integration.md).
 Localization supports native project resources and compile-time custom
 resolvers; see [`docs/localization.md`](docs/localization.md).
+Date and time controls use one cross-platform wire format; see
+[`docs/temporal-values.md`](docs/temporal-values.md).
+
+File and media request semantics integrate with host-native async pickers; see
+[`docs/content-pickers.md`](docs/content-pickers.md).
 
 ## Compiler CLI
 

@@ -32,8 +32,10 @@ internal object ComposeGenerator : CodeGenerator {
             ?.let { "import $it\n" }
             .orEmpty()
         val connector = connector(typeName, stateType, actionType)
+        val themeAdapter = themeAdapter(typeName, document.document.theme)
         val runtimeImports = if (connector.isNotEmpty()) {
             """
+            |import androidx.lifecycle.compose.collectAsStateWithLifecycle
             |import dev.crossui.runtime.UiActionMapper
             |import dev.crossui.runtime.UiConnector
             |""".trimMargin() + "\n"
@@ -47,6 +49,41 @@ internal object ComposeGenerator : CodeGenerator {
         } else {
             ""
         }
+        val temporal = document.document.root.anyNode {
+            it.kind is NodeKind.DatePicker
+        }
+        val temporalImports = if (temporal) {
+            """
+            |import java.text.SimpleDateFormat
+            |import java.util.Date
+            |import java.util.Locale
+            |import java.util.TimeZone
+            |""".trimMargin() + "\n"
+        } else {
+            ""
+        }
+        val temporalCodec = if (temporal) composeTemporalCodec() else ""
+        val dynamicColorImports = if (
+            document.document.theme.android.dynamicColor
+        ) {
+            """
+            |import androidx.compose.foundation.isSystemInDarkTheme
+            |import androidx.compose.ui.platform.LocalContext
+            |""".trimMargin() + "\n"
+        } else {
+            ""
+        }
+        val additionalImports = listOf(
+            imageImport,
+            runtimeImports,
+            stateImport,
+            actionImport,
+            temporalImports,
+            dynamicColorImports,
+        ).flatMap {
+            it.lineSequence().filter(String::isNotBlank).toList()
+        }
+            .joinToString("\n")
         return listOf(
             GeneratedSource(
                 target,
@@ -66,16 +103,39 @@ internal object ComposeGenerator : CodeGenerator {
                 |import androidx.compose.ui.text.input.KeyboardType
                 |import androidx.compose.ui.text.input.PasswordVisualTransformation
                 |import androidx.compose.ui.unit.dp
-                |$imageImport$runtimeImports$stateImport$actionImport
+                |$additionalImports
                 |
                 |@OptIn(ExperimentalMaterial3Api::class)
                 |@Composable
                 |fun $typeName(${stateParameter}dispatch: (action: String, value: String?) -> Unit) {
                 |$body
-                |}$connector
-                |""".trimMargin(),
+                |}$connector$themeAdapter$temporalCodec
+                |""".trimMargin().trimEnd() + "\n",
             ),
         )
+    }
+
+    private fun themeAdapter(typeName: String, theme: Theme): String {
+        if (!theme.android.dynamicColor) return ""
+        val dark = when (theme.colorScheme) {
+            ColorScheme.System -> "isSystemInDarkTheme()"
+            ColorScheme.Light -> "false"
+            ColorScheme.Dark -> "true"
+        }
+        return """
+        |
+        |
+        |@Composable
+        |fun ${typeName}Theme(content: @Composable () -> Unit) {
+        |    val context = LocalContext.current
+        |    val colorScheme = if ($dark) {
+        |        dynamicDarkColorScheme(context)
+        |    } else {
+        |        dynamicLightColorScheme(context)
+        |    }
+        |    MaterialTheme(colorScheme = colorScheme, content = content)
+        |}
+        |""".trimMargin()
     }
 
     private fun connector(
@@ -93,7 +153,7 @@ internal object ComposeGenerator : CodeGenerator {
         |    connector: UiConnector<$stateName, $actionName>,
         |    actions: UiActionMapper<$actionName>,
         |) {
-        |    val state by connector.states.collectAsState()
+        |    val state by connector.states.collectAsStateWithLifecycle()
         |    $typeName(state = state) { action, value ->
         |        connector.send(actions.map(action, value))
         |    }
@@ -163,6 +223,12 @@ internal object ComposeGenerator : CodeGenerator {
             NodeKind.Card ->
                 "$i${"Card { Column(Modifier.padding(16.dp)) {\n${child(2)}\n${"    ".repeat(depth + 1)}}\n$i}"}"
             is NodeKind.Chip -> chip(node, kind, i, localization)
+            is NodeKind.ContentPicker -> button(
+                node,
+                NodeKind.Button(kind.label, kind.onRequest, kind.variant),
+                i,
+                localization,
+            )
         }
         val visible = node.bindings["visible"]
         val rendered = if (visible == null) {
@@ -274,11 +340,70 @@ internal object ComposeGenerator : CodeGenerator {
         kind: NodeKind.DatePicker,
         i: String,
     ): String {
-        val variable = "dateState" + node.key.value.identifier()
-        return "$i${"val $variable = rememberDatePickerState()"}\n" +
-            "$i${"DatePicker(state = $variable)"}\n" +
-            "$i${"LaunchedEffect($variable.selectedDateMillis) { $variable.selectedDateMillis?.let { dispatch(\"${kind.onChange.kotlin()}\", it.toString()) } }"}"
+        val suffix = node.key.value.identifier()
+        val value = "state.${requireNotNull(node.bindings["value"]).path}"
+        val action = kind.onChange.kotlin()
+        val ready = "temporalReady$suffix"
+        val childIndent = "$i    "
+        val content = when (kind.mode) {
+            DatePickerMode.Date -> {
+                val date = "dateState$suffix"
+                "$childIndent${"var $ready by remember { mutableStateOf(false) }"}\n" +
+                    "$childIndent${"val $date = rememberDatePickerState(initialSelectedDateMillis = CrossUiTemporalCodec.dateMillis($value))"}\n" +
+                    "$childIndent${"DatePicker(state = $date)"}\n" +
+                    "$childIndent${"LaunchedEffect($date.selectedDateMillis) { if ($ready) $date.selectedDateMillis?.let { dispatch(\"$action\", CrossUiTemporalCodec.date(it)) } else $ready = true }"}"
+            }
+            DatePickerMode.Time -> {
+                val time = "timeState$suffix"
+                "$childIndent${"var $ready by remember { mutableStateOf(false) }"}\n" +
+                    "$childIndent${"val $time = rememberTimePickerState(initialHour = CrossUiTemporalCodec.hour($value), initialMinute = CrossUiTemporalCodec.minute($value))"}\n" +
+                    "$childIndent${"TimePicker(state = $time)"}\n" +
+                    "$childIndent${"LaunchedEffect($time.hour, $time.minute) { if ($ready) dispatch(\"$action\", CrossUiTemporalCodec.time($time.hour, $time.minute)) else $ready = true }"}"
+            }
+            DatePickerMode.DateTime -> {
+                val date = "dateState$suffix"
+                val time = "timeState$suffix"
+                "$childIndent${"var $ready by remember { mutableStateOf(false) }"}\n" +
+                    "$childIndent${"val $date = rememberDatePickerState(initialSelectedDateMillis = CrossUiTemporalCodec.dateMillis($value))"}\n" +
+                    "$childIndent${"val $time = rememberTimePickerState(initialHour = CrossUiTemporalCodec.hour($value), initialMinute = CrossUiTemporalCodec.minute($value))"}\n" +
+                    "$childIndent${"DatePicker(state = $date)"}\n" +
+                    "$childIndent${"TimePicker(state = $time)"}\n" +
+                    "$childIndent${"LaunchedEffect($date.selectedDateMillis, $time.hour, $time.minute) { if ($ready) $date.selectedDateMillis?.let { dispatch(\"$action\", CrossUiTemporalCodec.dateTime(it, $time.hour, $time.minute)) } else $ready = true }"}"
+            }
+        }
+        return "$i${"key($value) {"}\n$content\n$i}"
     }
+
+    private fun composeTemporalCodec(): String = """
+        |
+        |
+        |private object CrossUiTemporalCodec {
+        |    private val utc = TimeZone.getTimeZone("UTC")
+        |
+        |    fun dateMillis(value: String?): Long? {
+        |        if (value.isNullOrBlank()) return null
+        |        val pattern = if ('T' in value) "yyyy-MM-dd'T'HH:mm:ssX" else "yyyy-MM-dd"
+        |        return formatter(pattern).parse(value)?.time
+        |    }
+        |
+        |    fun hour(value: String?): Int =
+        |        value?.substringAfter('T', value)?.take(2)?.toIntOrNull() ?: 0
+        |
+        |    fun minute(value: String?): Int =
+        |        value?.substringAfter('T', value)?.drop(3)?.take(2)?.toIntOrNull() ?: 0
+        |
+        |    fun date(value: Long): String = formatter("yyyy-MM-dd").format(Date(value))
+        |
+        |    fun time(hour: Int, minute: Int): String =
+        |        "%02d:%02d:00".format(Locale.ROOT, hour, minute)
+        |
+        |    fun dateTime(value: Long, hour: Int, minute: Int): String =
+        |        "${'$'}{date(value)}T${'$'}{time(hour, minute)}Z"
+        |
+        |    private fun formatter(pattern: String) =
+        |        SimpleDateFormat(pattern, Locale.ROOT).apply { timeZone = utc }
+        |}
+        |""".trimMargin()
 
     private fun chip(
         node: Node,

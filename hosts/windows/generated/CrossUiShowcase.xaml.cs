@@ -3,6 +3,7 @@ using System;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -12,15 +13,48 @@ namespace CrossUi.Generated;
 public sealed partial class CrossUiShowcase : UserControl
 {
     public Action<string, string?> Dispatch { get; }
+    public CrossUiShowcaseState State { get; }
+    public string LocalizedHeadingValue => Localize("showcase.welcome", "Welcome");
+    public string LocalizedLanguageOptionEnUS => Localize("language.english", "English");
+    public string LocalizedLanguageOptionZhCN => Localize("language.chinese", "中文");
+    public string LocalizedLanguageOptionJaJP => Localize("language.japanese", "日本語");
+    public string LocalizedAttachmentLabel => Localize("showcase.attach_document", "Attach document");
 
-    public CrossUiShowcase() : this((_, _) => { })
+    public CrossUiShowcase() : this((_, _) =>
+        throw new InvalidOperationException(
+            "CrossUiShowcase requires an action dispatcher."
+        ))
     {
     }
 
     public CrossUiShowcase(Action<string, string?> dispatch)
     {
         Dispatch = dispatch;
+        State = new CrossUiShowcaseState(dispatch, DispatcherQueue);
         InitializeComponent();
+    }
+
+    public void RefreshLocalization()
+    {
+        resourceLoader = new();
+        Bindings.Update();
+    }
+
+    private Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+    public Action<Exception>? LocalizationError { get; set; }
+
+    private string Localize(string key, string fallback)
+    {
+        try
+        {
+            var value = resourceLoader.GetString(key);
+            return string.IsNullOrEmpty(value) ? fallback : value;
+        }
+        catch (Exception exception)
+        {
+            LocalizationError?.Invoke(exception);
+            return fallback;
+        }
     }
 
 
@@ -48,12 +82,6 @@ public sealed partial class CrossUiShowcase : UserControl
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e) =>
         DispatchTag(sender, ((ComboBox)sender).SelectedItem is FrameworkElement item ? item.Tag?.ToString() : null);
 
-    private void OnDateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs e) =>
-        DispatchTag(sender, e.NewDate?.ToString("O"));
-
-    private void OnTimeChanged(TimePicker sender, TimePickerSelectedValueChangedEventArgs e) =>
-        DispatchTag(sender, e.NewTime?.ToString());
-
     private void DispatchTag(object sender, string? value)
     {
         if (sender is FrameworkElement element && element.Tag is string action)
@@ -61,4 +89,363 @@ public sealed partial class CrossUiShowcase : UserControl
             Dispatch(action, value);
         }
     }
+}
+
+public sealed class CrossUiShowcaseState : INotifyPropertyChanged
+{
+    private readonly Action<string, string?> dispatch;
+    private readonly DispatcherQueue dispatcherQueue;
+
+    public CrossUiShowcaseState(
+        Action<string, string?> dispatch,
+        DispatcherQueue dispatcherQueue
+    )
+    {
+        this.dispatch = dispatch;
+        this.dispatcherQueue = dispatcherQueue;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private string email = "";
+
+    public string Email
+    {
+        get => email;
+        set => SetEmail(value, true);
+    }
+
+    public void ApplyEmail(string value) =>
+        SetEmail(value, false);
+
+    private void SetEmail(string value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetEmail(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(email, value))
+        {
+            return;
+        }
+
+        email = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Email)));
+        if (dispatchChange)
+        {
+            dispatch("email_changed", value);
+        }
+    }
+
+
+    private string password = "";
+
+    public string Password
+    {
+        get => password;
+        set => SetPassword(value, true);
+    }
+
+    public void ApplyPassword(string value) =>
+        SetPassword(value, false);
+
+    private void SetPassword(string value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetPassword(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(password, value))
+        {
+            return;
+        }
+
+        password = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Password)));
+        if (dispatchChange)
+        {
+            dispatch("password_changed", value);
+        }
+    }
+
+
+    private string search = "";
+
+    public string Search
+    {
+        get => search;
+        set => SetSearch(value, true);
+    }
+
+    public void ApplySearch(string value) =>
+        SetSearch(value, false);
+
+    private void SetSearch(string value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetSearch(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(search, value))
+        {
+            return;
+        }
+
+        search = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Search)));
+        if (dispatchChange)
+        {
+            dispatch("search_changed", value);
+        }
+    }
+
+
+    private bool remember = false;
+
+    public bool Remember
+    {
+        get => remember;
+        set => SetRemember(value, true);
+    }
+
+    public void ApplyRemember(bool value) =>
+        SetRemember(value, false);
+
+    private void SetRemember(bool value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetRemember(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(remember, value))
+        {
+            return;
+        }
+
+        remember = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Remember)));
+        if (dispatchChange)
+        {
+            dispatch("remember_changed", value.ToString().ToLowerInvariant());
+        }
+    }
+
+
+    private string volumeLabel = "";
+
+    public string VolumeLabel
+    {
+        get => volumeLabel;
+        set => SetVolumeLabel(value, true);
+    }
+
+    public void ApplyVolumeLabel(string value) =>
+        SetVolumeLabel(value, false);
+
+    private void SetVolumeLabel(string value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetVolumeLabel(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(volumeLabel, value))
+        {
+            return;
+        }
+
+        volumeLabel = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VolumeLabel)));
+    }
+
+
+    private double volume = 0.5d;
+
+    public double Volume
+    {
+        get => volume;
+        set => SetVolume(value, true);
+    }
+
+    public void ApplyVolume(double value) =>
+        SetVolume(value, false);
+
+    private void SetVolume(double value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetVolume(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(volume, value))
+        {
+            return;
+        }
+
+        volume = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Volume)));
+        if (dispatchChange)
+        {
+            dispatch("volume_changed", value.ToString(CultureInfo.InvariantCulture));
+        }
+    }
+
+
+    private bool termsAccepted = false;
+
+    public bool TermsAccepted
+    {
+        get => termsAccepted;
+        set => SetTermsAccepted(value, true);
+    }
+
+    public void ApplyTermsAccepted(bool value) =>
+        SetTermsAccepted(value, false);
+
+    private void SetTermsAccepted(bool value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetTermsAccepted(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(termsAccepted, value))
+        {
+            return;
+        }
+
+        termsAccepted = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TermsAccepted)));
+        if (dispatchChange)
+        {
+            dispatch("terms_changed", value.ToString().ToLowerInvariant());
+        }
+    }
+
+
+    private string language = "en";
+
+    public string Language
+    {
+        get => language;
+        set => SetLanguage(value, true);
+    }
+
+    public void ApplyLanguage(string value) =>
+        SetLanguage(value, false);
+
+    private void SetLanguage(string value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetLanguage(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(language, value))
+        {
+            return;
+        }
+
+        language = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Language)));
+        if (dispatchChange)
+        {
+            dispatch("language_changed", value);
+        }
+    }
+
+
+    private string pickerStatus = "";
+
+    public string PickerStatus
+    {
+        get => pickerStatus;
+        set => SetPickerStatus(value, true);
+    }
+
+    public void ApplyPickerStatus(string value) =>
+        SetPickerStatus(value, false);
+
+    private void SetPickerStatus(string value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetPickerStatus(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(pickerStatus, value))
+        {
+            return;
+        }
+
+        pickerStatus = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PickerStatus)));
+    }
+
+
+    private bool darkMode = false;
+
+    public bool DarkMode
+    {
+        get => darkMode;
+        set => SetDarkMode(value, true);
+    }
+
+    public void ApplyDarkMode(bool value) =>
+        SetDarkMode(value, false);
+
+    private void SetDarkMode(bool value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetDarkMode(value, dispatchChange)
+            );
+            return;
+        }
+
+        if (Equals(darkMode, value))
+        {
+            return;
+        }
+
+        darkMode = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DarkMode)));
+        if (dispatchChange)
+        {
+            dispatch("dark_mode_changed", value.ToString().ToLowerInvariant());
+        }
+    }
+
 }

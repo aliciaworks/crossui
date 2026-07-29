@@ -10,6 +10,8 @@ class UiDslTest {
         val email: String = "",
         val enabled: Boolean = false,
         val darkMode: Boolean = false,
+        val volume: Double = 0.5,
+        val language: String = "en",
     )
 
     private sealed interface SettingsAction {
@@ -105,5 +107,46 @@ class UiDslTest {
 
         assertEquals("Hello", (document.root.kind as NodeKind.Text).text)
         assertEquals(emptyMap(), document.root.localizedText)
+    }
+
+    @Test
+    fun contentPickerDslKeepsRequestSemanticsOutOfPlatformCode() {
+        val node = filePicker(
+            key = "attachment",
+            label = "Attach PDF",
+            onRequest = "pick_attachment",
+            mimeTypes = listOf("application/pdf"),
+        )
+
+        val kind = assertIs<NodeKind.ContentPicker>(node.kind)
+        assertEquals("pick_attachment", kind.onRequest)
+        assertEquals(
+            ContentPickerRequest.Files(listOf("application/pdf")),
+            kind.request,
+        )
+    }
+
+    @Test
+    fun boundSelectionsCanKeepNativeHostDefaults() {
+        val slider = slider(
+            "volume",
+            0.5,
+            bind(SettingsState::volume),
+            0.0,
+            1.0,
+            onChange = "volume_changed",
+        )
+        val picker = picker(
+            "language",
+            "en",
+            bind(SettingsState::language),
+            listOf(pickerOption("English", "en")),
+            "language_changed",
+        )
+
+        assertEquals(0.5, (slider.kind as NodeKind.Slider).value)
+        assertEquals("en", (picker.kind as NodeKind.Picker).selected)
+        assertEquals("volume", slider.bindings.getValue("value").path)
+        assertEquals("language", picker.bindings.getValue("selected").path)
     }
 }

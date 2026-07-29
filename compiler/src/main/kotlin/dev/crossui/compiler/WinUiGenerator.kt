@@ -112,18 +112,13 @@ internal object WinUiGenerator : CodeGenerator {
                     (if ("value" in node.bindings) "" else " ValueChanged=\"OnSliderChanged\"") +
                     "$visible$enabled$automation />"
             is NodeKind.Picker ->
-                "$i<ComboBox SelectedValue=\"${node.xamlValue("selected", kind.selected.xml())}\" Tag=\"${kind.onChange.xml()}\"" +
+                "$i<ComboBox SelectedValue=\"${node.xamlValue("selected", kind.selected.xml())}\" SelectedValuePath=\"Tag\" Tag=\"${kind.onChange.xml()}\"" +
                     (if ("selected" in node.bindings) "" else " SelectionChanged=\"OnSelectionChanged\"") +
                     "$visible$enabled>\n" +
                     kind.options.joinToString("\n") {
                         "${"    ".repeat(depth + 1)}<ComboBoxItem Content=\"${it.xamlText(node)}\" Tag=\"${it.value.xml()}\" />"
                     } + "\n$i</ComboBox>"
-            is NodeKind.DatePicker -> when (kind.mode) {
-                DatePickerMode.Time ->
-                    "$i<TimePicker Tag=\"${kind.onChange.xml()}\" SelectedTimeChanged=\"OnTimeChanged\"$visible$enabled />"
-                else ->
-                    "$i<CalendarDatePicker Tag=\"${kind.onChange.xml()}\" DateChanged=\"OnDateChanged\"$visible$enabled />"
-            }
+            is NodeKind.DatePicker -> datePicker(node, kind, i, visible, enabled)
             is NodeKind.Checkbox ->
                 "$i<CheckBox Content=\"${node.xamlText(LocalizedField.Label, kind.label.orEmpty())}\" IsChecked=\"${node.xamlValue("checked", kind.checked.toString())}\" Tag=\"${kind.onChange.xml()}\"" +
                     (if ("checked" in node.bindings) "" else " Click=\"OnCheckboxChanged\"") +
@@ -134,8 +129,33 @@ internal object WinUiGenerator : CodeGenerator {
                 "$i<Border CornerRadius=\"8\" Padding=\"16\" Background=\"{ThemeResource CardBackgroundFillColorDefaultBrush}\">\n${child(1)}\n$i</Border>"
             is NodeKind.Chip ->
                 "$i<Border CornerRadius=\"12\" Padding=\"8,4\" Background=\"{ThemeResource AccentFillColorDefaultBrush}\"><TextBlock Text=\"${node.xamlText(LocalizedField.Label, kind.label)}\" /></Border>"
+            is NodeKind.ContentPicker ->
+                "$i<Button Content=\"${node.xamlText(LocalizedField.Label, kind.label)}\" Tag=\"${kind.onRequest.xml()}\" Click=\"OnAction\"$visible$enabled$automation />"
         }
         return marker + generated
+    }
+
+    private fun datePicker(
+        node: Node,
+        kind: NodeKind.DatePicker,
+        indentation: String,
+        visible: String,
+        enabled: String,
+    ): String {
+        val property = requireNotNull(node.bindings["value"])
+            .path
+            .replaceFirstChar(Char::uppercaseChar)
+        return when (kind.mode) {
+            DatePickerMode.Date ->
+                "$indentation<CalendarDatePicker Date=\"{x:Bind State.$property, Mode=TwoWay}\"$visible$enabled />"
+            DatePickerMode.Time ->
+                "$indentation<TimePicker SelectedTime=\"{x:Bind State.$property, Mode=TwoWay}\"$visible$enabled />"
+            DatePickerMode.DateTime ->
+                "$indentation<StackPanel Orientation=\"Horizontal\" Spacing=\"8\"$visible>\n" +
+                    "$indentation    <CalendarDatePicker Date=\"{x:Bind State.${property}Date, Mode=TwoWay}\"$enabled />\n" +
+                    "$indentation    <TimePicker SelectedTime=\"{x:Bind State.${property}Time, Mode=TwoWay}\"$enabled />\n" +
+                    "$indentation</StackPanel>"
+        }
     }
 
     private fun input(
@@ -176,6 +196,22 @@ internal object WinUiGenerator : CodeGenerator {
             "    public string ${property.propertyName} => $expression;"
         }.let { if (it.isEmpty()) "" else "$it\n" }
         val nativeLocalization = nativeLocalization(localizedProperties, localization)
+        val localizationRefresh = if (localizedProperties.isEmpty()) {
+            ""
+        } else {
+            val resetLoader = if (nativeLocalization.isEmpty()) {
+                ""
+            } else {
+                "        resourceLoader = new();\n"
+            }
+            """
+            |    public void RefreshLocalization()
+            |    {
+            |$resetLoader        Bindings.Update();
+            |    }
+            |
+            |""".trimMargin()
+        }
         val stateName = "${typeName}State"
         val stateProperty = if (properties.isEmpty()) {
             ""
@@ -185,7 +221,7 @@ internal object WinUiGenerator : CodeGenerator {
         val stateInitialization = if (properties.isEmpty()) {
             ""
         } else {
-            "        State = new $stateName(dispatch);\n"
+            "        State = new $stateName(dispatch, DispatcherQueue);\n"
         }
         val stateClass = if (properties.isEmpty()) {
             ""
@@ -198,6 +234,7 @@ internal object WinUiGenerator : CodeGenerator {
             |using System.ComponentModel;
             |using System.Globalization;
             |using System.Runtime.CompilerServices;
+            |using Microsoft.UI.Dispatching;
             |using Microsoft.UI.Xaml;
             |using Microsoft.UI.Xaml.Controls;
             |using Microsoft.UI.Xaml.Controls.Primitives;
@@ -208,7 +245,10 @@ internal object WinUiGenerator : CodeGenerator {
             |{
             |    public Action<string, string?> Dispatch { get; }
             |$stateProperty$localizedMembers
-            |    public $typeName() : this((_, _) => { })
+            |    public $typeName() : this((_, _) =>
+            |        throw new InvalidOperationException(
+            |            "$typeName requires an action dispatcher."
+            |        ))
             |    {
             |    }
             |
@@ -218,7 +258,7 @@ internal object WinUiGenerator : CodeGenerator {
             |$stateInitialization        InitializeComponent();
             |    }
             |
-            |$nativeLocalization
+            |$localizationRefresh$nativeLocalization
             |    public Visibility BooleanToVisibility(bool value) =>
             |        value ? Visibility.Visible : Visibility.Collapsed;
             |
@@ -243,12 +283,6 @@ internal object WinUiGenerator : CodeGenerator {
             |    private void OnSelectionChanged(object sender, SelectionChangedEventArgs e) =>
             |        DispatchTag(sender, ((ComboBox)sender).SelectedItem is FrameworkElement item ? item.Tag?.ToString() : null);
             |
-            |    private void OnDateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs e) =>
-            |        DispatchTag(sender, e.NewDate?.ToString("O"));
-            |
-            |    private void OnTimeChanged(TimePicker sender, TimePickerSelectedValueChangedEventArgs e) =>
-            |        DispatchTag(sender, e.NewTime?.ToString());
-            |
             |    private void DispatchTag(object sender, string? value)
             |    {
             |        if (sender is FrameworkElement element && element.Tag is string action)
@@ -268,7 +302,8 @@ internal object WinUiGenerator : CodeGenerator {
         properties.any { localization.render(target, it.text) == null }
     ) {
         """
-        |    private readonly Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+        |    private Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+        |    public Action<Exception>? LocalizationError { get; set; }
         |
         |    private string Localize(string key, string fallback)
         |    {
@@ -277,8 +312,9 @@ internal object WinUiGenerator : CodeGenerator {
         |            var value = resourceLoader.GetString(key);
         |            return string.IsNullOrEmpty(value) ? fallback : value;
         |        }
-        |        catch
+        |        catch (Exception exception)
         |        {
+        |            LocalizationError?.Invoke(exception);
         |            return fallback;
         |        }
         |    }
@@ -297,10 +333,15 @@ internal object WinUiGenerator : CodeGenerator {
             |public sealed class $stateName : INotifyPropertyChanged
             |{
             |    private readonly Action<string, string?> dispatch;
+            |    private readonly DispatcherQueue dispatcherQueue;
             |
-            |    public $stateName(Action<string, string?> dispatch)
+            |    public $stateName(
+            |        Action<string, string?> dispatch,
+            |        DispatcherQueue dispatcherQueue
+            |    )
             |    {
             |        this.dispatch = dispatch;
+            |        this.dispatcherQueue = dispatcherQueue;
             |    }
             |
             |    public event PropertyChangedEventHandler? PropertyChanged;
@@ -311,11 +352,22 @@ internal object WinUiGenerator : CodeGenerator {
     }
 
     private fun stateMember(property: WinBindingProperty): String {
+        if (property.temporalMode == DatePickerMode.DateTime) {
+            return dateTimeStateMember(property)
+        }
         val field = property.propertyName.replaceFirstChar(Char::lowercaseChar)
-        val serialize = when (property.csharpType) {
-            "bool" -> "value.ToString().ToLowerInvariant()"
-            "double" -> "value.ToString(CultureInfo.InvariantCulture)"
-            else -> "value"
+        val serialize = when (property.temporalMode) {
+            DatePickerMode.Date ->
+                "value?.ToString(\"yyyy-MM-dd\", CultureInfo.InvariantCulture)"
+            DatePickerMode.Time ->
+                "value?.ToString(\"hh\\\\:mm\\\\:ss\", CultureInfo.InvariantCulture)"
+            DatePickerMode.DateTime ->
+                "value?.ToUniversalTime().ToString(\"yyyy-MM-dd'T'HH:mm:ss'Z'\", CultureInfo.InvariantCulture)"
+            null -> when (property.csharpType) {
+                "bool" -> "value.ToString().ToLowerInvariant()"
+                "double" -> "value.ToString(CultureInfo.InvariantCulture)"
+                else -> "value"
+            }
         }
         val dispatch = property.action?.let {
             """
@@ -339,6 +391,14 @@ internal object WinUiGenerator : CodeGenerator {
         |
         |    private void Set${property.propertyName}(${property.csharpType} value, bool dispatchChange)
         |    {
+        |        if (!dispatcherQueue.HasThreadAccess)
+        |        {
+        |            _ = dispatcherQueue.TryEnqueue(
+        |                () => Set${property.propertyName}(value, dispatchChange)
+        |            );
+        |            return;
+        |        }
+        |
         |        if (Equals($field, value))
         |        {
         |            return;
@@ -347,6 +407,80 @@ internal object WinUiGenerator : CodeGenerator {
         |        $field = value;
         |        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(${property.propertyName})));
         |$dispatch    }
+        |""".trimMargin()
+    }
+
+    private fun dateTimeStateMember(property: WinBindingProperty): String {
+        val name = property.propertyName
+        val field = name.replaceFirstChar(Char::lowercaseChar)
+        val action = requireNotNull(property.action).csharp()
+        return """
+        |    private DateTimeOffset? $field = null;
+        |
+        |    public DateTimeOffset? ${name}Date
+        |    {
+        |        get => $field;
+        |        set
+        |        {
+        |            if (value is null)
+        |            {
+        |                Set$name(null, true);
+        |                return;
+        |            }
+        |            var time = $field?.TimeOfDay ?? TimeSpan.Zero;
+        |            Set$name(
+        |                new DateTimeOffset(value.Value.Date + time, value.Value.Offset),
+        |                true
+        |            );
+        |        }
+        |    }
+        |
+        |    public TimeSpan? ${name}Time
+        |    {
+        |        get => $field?.TimeOfDay;
+        |        set
+        |        {
+        |            if (value is null)
+        |            {
+        |                Set$name(null, true);
+        |                return;
+        |            }
+        |            var date = $field ?? DateTimeOffset.Now;
+        |            Set$name(
+        |                new DateTimeOffset(date.Date + value.Value, date.Offset),
+        |                true
+        |            );
+        |        }
+        |    }
+        |
+        |    public void Apply$name(DateTimeOffset? value) =>
+        |        Set$name(value, false);
+        |
+        |    private void Set$name(DateTimeOffset? value, bool dispatchChange)
+        |    {
+        |        if (!dispatcherQueue.HasThreadAccess)
+        |        {
+        |            _ = dispatcherQueue.TryEnqueue(() => Set$name(value, dispatchChange));
+        |            return;
+        |        }
+        |        if (Equals($field, value))
+        |        {
+        |            return;
+        |        }
+        |        $field = value;
+        |        PropertyChanged?.Invoke(this, new(nameof(${name}Date)));
+        |        PropertyChanged?.Invoke(this, new(nameof(${name}Time)));
+        |        if (dispatchChange)
+        |        {
+        |            dispatch(
+        |                "$action",
+        |                value?.ToUniversalTime().ToString(
+        |                    "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        |                    CultureInfo.InvariantCulture
+        |                )
+        |            );
+        |        }
+        |    }
         |""".trimMargin()
     }
 }

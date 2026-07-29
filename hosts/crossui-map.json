@@ -3,257 +3,287 @@
         {
             "nodeKey": "app",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
-            "generatedLine": 10
-        },
-        {
-            "nodeKey": "login",
-            "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 12
         },
         {
-            "nodeKey": "login-content",
+            "nodeKey": "login",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 14
         },
         {
-            "nodeKey": "heading",
+            "nodeKey": "login-content",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 16
         },
         {
-            "nodeKey": "logo",
+            "nodeKey": "heading",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 18
         },
         {
-            "nodeKey": "email",
+            "nodeKey": "logo",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 20
         },
         {
-            "nodeKey": "password",
+            "nodeKey": "email",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 22
         },
         {
-            "nodeKey": "search",
+            "nodeKey": "password",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 24
         },
         {
-            "nodeKey": "remember",
+            "nodeKey": "search",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 26
         },
         {
-            "nodeKey": "volume-label",
+            "nodeKey": "remember",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 28
         },
         {
-            "nodeKey": "volume",
+            "nodeKey": "volume-label",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 30
         },
         {
-            "nodeKey": "terms",
+            "nodeKey": "volume",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 32
         },
         {
-            "nodeKey": "chips",
+            "nodeKey": "terms",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 34
         },
         {
-            "nodeKey": "ios",
+            "nodeKey": "chips",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 36
         },
         {
-            "nodeKey": "android",
+            "nodeKey": "ios",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 38
         },
         {
-            "nodeKey": "active",
+            "nodeKey": "android",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 40
         },
         {
-            "nodeKey": "separator",
+            "nodeKey": "active",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
-            "generatedLine": 43
+            "generatedLine": 42
         },
         {
-            "nodeKey": "language",
+            "nodeKey": "separator",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 45
         },
         {
-            "nodeKey": "actions",
+            "nodeKey": "language",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
-            "generatedLine": 51
+            "generatedLine": 47
         },
         {
-            "nodeKey": "submit",
+            "nodeKey": "actions",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 53
         },
         {
-            "nodeKey": "delete",
+            "nodeKey": "submit",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 55
         },
         {
-            "nodeKey": "summary",
+            "nodeKey": "delete",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
-            "generatedLine": 58
+            "generatedLine": 57
         },
         {
-            "nodeKey": "summary-copy",
+            "nodeKey": "attachment",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
             "generatedLine": 60
         },
         {
+            "nodeKey": "photos",
+            "generatedFile": "ios/generated/CrossUiShowcase.swift",
+            "generatedLine": 62
+        },
+        {
+            "nodeKey": "picker-status",
+            "generatedFile": "ios/generated/CrossUiShowcase.swift",
+            "generatedLine": 64
+        },
+        {
+            "nodeKey": "summary",
+            "generatedFile": "ios/generated/CrossUiShowcase.swift",
+            "generatedLine": 66
+        },
+        {
+            "nodeKey": "summary-copy",
+            "generatedFile": "ios/generated/CrossUiShowcase.swift",
+            "generatedLine": 68
+        },
+        {
             "nodeKey": "legal",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
-            "generatedLine": 63
+            "generatedLine": 71
         },
         {
             "nodeKey": "settings",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
-            "generatedLine": 67
+            "generatedLine": 75
         },
         {
             "nodeKey": "settings-title",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
-            "generatedLine": 69
+            "generatedLine": 77
         },
         {
             "nodeKey": "dark-mode",
             "generatedFile": "ios/generated/CrossUiShowcase.swift",
-            "generatedLine": 71
+            "generatedLine": 79
         },
         {
             "nodeKey": "app",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 21
+            "generatedLine": 25
         },
         {
             "nodeKey": "login",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 27
+            "generatedLine": 31
         },
         {
             "nodeKey": "login-content",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 29
+            "generatedLine": 33
         },
         {
             "nodeKey": "heading",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 31
+            "generatedLine": 35
         },
         {
             "nodeKey": "logo",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 33
+            "generatedLine": 37
         },
         {
             "nodeKey": "email",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 35
+            "generatedLine": 39
         },
         {
             "nodeKey": "password",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 37
+            "generatedLine": 41
         },
         {
             "nodeKey": "search",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 39
+            "generatedLine": 43
         },
         {
             "nodeKey": "remember",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 41
+            "generatedLine": 45
         },
         {
             "nodeKey": "volume-label",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 43
+            "generatedLine": 47
         },
         {
             "nodeKey": "volume",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 45
+            "generatedLine": 49
         },
         {
             "nodeKey": "terms",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 47
+            "generatedLine": 51
         },
         {
             "nodeKey": "chips",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 49
+            "generatedLine": 53
         },
         {
             "nodeKey": "ios",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 51
+            "generatedLine": 55
         },
         {
             "nodeKey": "android",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 53
+            "generatedLine": 57
         },
         {
             "nodeKey": "active",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 55
+            "generatedLine": 59
         },
         {
             "nodeKey": "separator",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 58
+            "generatedLine": 62
         },
         {
             "nodeKey": "language",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 60
+            "generatedLine": 64
         },
         {
             "nodeKey": "actions",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 62
+            "generatedLine": 66
         },
         {
             "nodeKey": "submit",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 64
+            "generatedLine": 68
         },
         {
             "nodeKey": "delete",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 66
+            "generatedLine": 70
+        },
+        {
+            "nodeKey": "attachment",
+            "generatedFile": "android/generated/CrossUiShowcase.kt",
+            "generatedLine": 73
+        },
+        {
+            "nodeKey": "photos",
+            "generatedFile": "android/generated/CrossUiShowcase.kt",
+            "generatedLine": 75
+        },
+        {
+            "nodeKey": "picker-status",
+            "generatedFile": "android/generated/CrossUiShowcase.kt",
+            "generatedLine": 77
         },
         {
             "nodeKey": "summary",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 69
+            "generatedLine": 79
         },
         {
             "nodeKey": "summary-copy",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 71
+            "generatedLine": 81
         },
         {
             "nodeKey": "legal",
             "generatedFile": "android/generated/CrossUiShowcase.kt",
-            "generatedLine": 75
+            "generatedLine": 85
         },
         {
             "nodeKey": "app",
@@ -361,54 +391,74 @@
             "generatedLine": 53
         },
         {
-            "nodeKey": "summary",
+            "nodeKey": "attachment",
             "generatedFile": "windows/generated/CrossUiShowcase.xaml",
             "generatedLine": 56
         },
         {
-            "nodeKey": "summary-copy",
+            "nodeKey": "photos",
             "generatedFile": "windows/generated/CrossUiShowcase.xaml",
             "generatedLine": 58
         },
         {
+            "nodeKey": "picker-status",
+            "generatedFile": "windows/generated/CrossUiShowcase.xaml",
+            "generatedLine": 60
+        },
+        {
+            "nodeKey": "summary",
+            "generatedFile": "windows/generated/CrossUiShowcase.xaml",
+            "generatedLine": 62
+        },
+        {
+            "nodeKey": "summary-copy",
+            "generatedFile": "windows/generated/CrossUiShowcase.xaml",
+            "generatedLine": 64
+        },
+        {
             "nodeKey": "legal",
             "generatedFile": "windows/generated/CrossUiShowcase.xaml",
-            "generatedLine": 61
+            "generatedLine": 67
         },
         {
             "nodeKey": "fixture",
             "generatedFile": "ios/generated/CrossUiTypedFixture.swift",
-            "generatedLine": 11
+            "generatedLine": 12
         },
         {
             "nodeKey": "fixture-content",
             "generatedFile": "ios/generated/CrossUiTypedFixture.swift",
-            "generatedLine": 13
+            "generatedLine": 14
         },
         {
             "nodeKey": "fixture-email",
             "generatedFile": "ios/generated/CrossUiTypedFixture.swift",
-            "generatedLine": 15
+            "generatedLine": 16
         },
         {
             "nodeKey": "fixture-status",
             "generatedFile": "ios/generated/CrossUiTypedFixture.swift",
-            "generatedLine": 17
+            "generatedLine": 18
         },
         {
             "nodeKey": "fixture-loading",
             "generatedFile": "ios/generated/CrossUiTypedFixture.swift",
-            "generatedLine": 19
+            "generatedLine": 20
         },
         {
             "nodeKey": "fixture-submit",
             "generatedFile": "ios/generated/CrossUiTypedFixture.swift",
-            "generatedLine": 23
+            "generatedLine": 24
         },
         {
             "nodeKey": "fixture-dark-mode",
             "generatedFile": "ios/generated/CrossUiTypedFixture.swift",
-            "generatedLine": 25
+            "generatedLine": 26
+        },
+        {
+            "nodeKey": "fixture-appointment",
+            "generatedFile": "ios/generated/CrossUiTypedFixture.swift",
+            "generatedLine": 28
         },
         {
             "nodeKey": "fixture",
@@ -444,6 +494,11 @@
             "nodeKey": "fixture-dark-mode",
             "generatedFile": "windows/generated/CrossUiTypedFixture.xaml",
             "generatedLine": 19
+        },
+        {
+            "nodeKey": "fixture-appointment",
+            "generatedFile": "windows/generated/CrossUiTypedFixture.xaml",
+            "generatedLine": 21
         }
     ]
 }

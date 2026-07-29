@@ -12,23 +12,23 @@
                     <!-- crossui-node:login-content -->
                     <StackPanel Orientation="Vertical" Spacing="16">
                         <!-- crossui-node:heading -->
-                        <TextBlock Text="Welcome" />
+                        <TextBlock Text="{x:Bind LocalizedHeadingValue, Mode=OneTime}" />
                         <!-- crossui-node:logo -->
                         <Image Source="https://example.com/logo.png" AutomationProperties.Name="App logo" />
                         <!-- crossui-node:email -->
-                        <TextBox Text="" PlaceholderText="you@example.com" Tag="email_changed" TextChanged="OnTextChanged" AutomationProperties.Name="Email" />
+                        <TextBox Text="{x:Bind State.Email, Mode=TwoWay}" PlaceholderText="you@example.com" Tag="email_changed" AutomationProperties.Name="Email" />
                         <!-- crossui-node:password -->
-                        <PasswordBox Password="" PlaceholderText="Password" Tag="password_changed" PasswordChanged="OnPasswordChanged" AutomationProperties.Name="Password" />
+                        <PasswordBox Password="{x:Bind State.Password, Mode=TwoWay}" PlaceholderText="Password" Tag="password_changed" AutomationProperties.Name="Password" />
                         <!-- crossui-node:search -->
-                        <TextBox Text="" PlaceholderText="Search…" Tag="search_changed" TextChanged="OnTextChanged" />
+                        <TextBox Text="{x:Bind State.Search, Mode=TwoWay}" PlaceholderText="Search…" Tag="search_changed" />
                         <!-- crossui-node:remember -->
-                        <ToggleSwitch Header="Remember me" IsOn="false" Tag="remember_changed" Toggled="OnToggleChanged" />
+                        <ToggleSwitch Header="Remember me" IsOn="{x:Bind State.Remember, Mode=TwoWay}" Tag="remember_changed" />
                         <!-- crossui-node:volume-label -->
-                        <TextBlock Text="Volume: 50%" />
+                        <TextBlock Text="{x:Bind State.VolumeLabel, Mode=OneWay}" />
                         <!-- crossui-node:volume -->
-                        <Slider Value="0.5" Minimum="0.0" Maximum="1.0" StepFrequency="0.05" Tag="volume_changed" ValueChanged="OnSliderChanged" AutomationProperties.Name="Volume" />
+                        <Slider Value="{x:Bind State.Volume, Mode=TwoWay}" Minimum="0.0" Maximum="1.0" StepFrequency="0.05" Tag="volume_changed" AutomationProperties.Name="Volume" />
                         <!-- crossui-node:terms -->
-                        <CheckBox Content="I agree to the Terms" IsChecked="false" Tag="terms_changed" Click="OnCheckboxChanged" />
+                        <CheckBox Content="I agree to the Terms" IsChecked="{x:Bind State.TermsAccepted, Mode=TwoWay}" Tag="terms_changed" />
                         <!-- crossui-node:chips -->
                         <StackPanel Orientation="Horizontal" Spacing="16">
                             <!-- crossui-node:ios -->
@@ -41,10 +41,10 @@
                         <!-- crossui-node:separator -->
                         <Border Height="1" Background="{ThemeResource SystemControlForegroundBaseLowBrush}" />
                         <!-- crossui-node:language -->
-                        <ComboBox SelectedValue="en" Tag="language_changed" SelectionChanged="OnSelectionChanged">
-                            <ComboBoxItem Content="English" Tag="en" />
-                            <ComboBoxItem Content="中文" Tag="zh" />
-                            <ComboBoxItem Content="日本語" Tag="ja" />
+                        <ComboBox SelectedValue="{x:Bind State.Language, Mode=TwoWay}" SelectedValuePath="Tag" Tag="language_changed">
+                            <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionEnUS, Mode=OneTime}" Tag="en-US" />
+                            <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionZhCN, Mode=OneTime}" Tag="zh-CN" />
+                            <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionJaJP, Mode=OneTime}" Tag="ja-JP" />
                         </ComboBox>
                         <!-- crossui-node:actions -->
                         <StackPanel Orientation="Horizontal" Spacing="16">
@@ -53,6 +53,12 @@
                             <!-- crossui-node:delete -->
                             <Button Content="Delete" Tag="show_delete" Click="OnAction" AutomationProperties.Name="Delete account" />
                         </StackPanel>
+                        <!-- crossui-node:attachment -->
+                        <Button Content="{x:Bind LocalizedAttachmentLabel, Mode=OneTime}" Tag="pick_attachment" Click="OnAction" />
+                        <!-- crossui-node:photos -->
+                        <Button Content="Choose photos" Tag="pick_photos" Click="OnAction" />
+                        <!-- crossui-node:picker-status -->
+                        <TextBlock Text="{x:Bind State.PickerStatus, Mode=OneWay}" />
                         <!-- crossui-node:summary -->
                         <Border CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
                             <!-- crossui-node:summary-copy -->

@@ -3,6 +3,7 @@ using System;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -17,18 +18,28 @@ public sealed partial class CrossUiTypedFixture : UserControl
     public string LocalizedFixtureSubmitLabel => Localize("fixture.continue", "Continue");
     public string LocalizedFixtureDarkModeLabel => Localize("fixture.dark_mode", "Dark Mode");
 
-    public CrossUiTypedFixture() : this((_, _) => { })
+    public CrossUiTypedFixture() : this((_, _) =>
+        throw new InvalidOperationException(
+            "CrossUiTypedFixture requires an action dispatcher."
+        ))
     {
     }
 
     public CrossUiTypedFixture(Action<string, string?> dispatch)
     {
         Dispatch = dispatch;
-        State = new CrossUiTypedFixtureState(dispatch);
+        State = new CrossUiTypedFixtureState(dispatch, DispatcherQueue);
         InitializeComponent();
     }
 
-    private readonly Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+    public void RefreshLocalization()
+    {
+        resourceLoader = new();
+        Bindings.Update();
+    }
+
+    private Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+    public Action<Exception>? LocalizationError { get; set; }
 
     private string Localize(string key, string fallback)
     {
@@ -37,8 +48,9 @@ public sealed partial class CrossUiTypedFixture : UserControl
             var value = resourceLoader.GetString(key);
             return string.IsNullOrEmpty(value) ? fallback : value;
         }
-        catch
+        catch (Exception exception)
         {
+            LocalizationError?.Invoke(exception);
             return fallback;
         }
     }
@@ -68,12 +80,6 @@ public sealed partial class CrossUiTypedFixture : UserControl
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e) =>
         DispatchTag(sender, ((ComboBox)sender).SelectedItem is FrameworkElement item ? item.Tag?.ToString() : null);
 
-    private void OnDateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs e) =>
-        DispatchTag(sender, e.NewDate?.ToString("O"));
-
-    private void OnTimeChanged(TimePicker sender, TimePickerSelectedValueChangedEventArgs e) =>
-        DispatchTag(sender, e.NewTime?.ToString());
-
     private void DispatchTag(object sender, string? value)
     {
         if (sender is FrameworkElement element && element.Tag is string action)
@@ -86,10 +92,15 @@ public sealed partial class CrossUiTypedFixture : UserControl
 public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
 {
     private readonly Action<string, string?> dispatch;
+    private readonly DispatcherQueue dispatcherQueue;
 
-    public CrossUiTypedFixtureState(Action<string, string?> dispatch)
+    public CrossUiTypedFixtureState(
+        Action<string, string?> dispatch,
+        DispatcherQueue dispatcherQueue
+    )
     {
         this.dispatch = dispatch;
+        this.dispatcherQueue = dispatcherQueue;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -107,6 +118,14 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
 
     private void SetEmail(string value, bool dispatchChange)
     {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetEmail(value, dispatchChange)
+            );
+            return;
+        }
+
         if (Equals(email, value))
         {
             return;
@@ -134,6 +153,14 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
 
     private void SetStatus(string value, bool dispatchChange)
     {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetStatus(value, dispatchChange)
+            );
+            return;
+        }
+
         if (Equals(status, value))
         {
             return;
@@ -157,6 +184,14 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
 
     private void SetIsSubmitting(bool value, bool dispatchChange)
     {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetIsSubmitting(value, dispatchChange)
+            );
+            return;
+        }
+
         if (Equals(isSubmitting, value))
         {
             return;
@@ -180,6 +215,14 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
 
     private void SetCanSubmit(bool value, bool dispatchChange)
     {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetCanSubmit(value, dispatchChange)
+            );
+            return;
+        }
+
         if (Equals(canSubmit, value))
         {
             return;
@@ -203,6 +246,14 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
 
     private void SetDarkMode(bool value, bool dispatchChange)
     {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(
+                () => SetDarkMode(value, dispatchChange)
+            );
+            return;
+        }
+
         if (Equals(darkMode, value))
         {
             return;
@@ -213,6 +264,74 @@ public sealed class CrossUiTypedFixtureState : INotifyPropertyChanged
         if (dispatchChange)
         {
             dispatch("dark_mode_changed", value.ToString().ToLowerInvariant());
+        }
+    }
+
+
+    private DateTimeOffset? appointment = null;
+
+    public DateTimeOffset? AppointmentDate
+    {
+        get => appointment;
+        set
+        {
+            if (value is null)
+            {
+                SetAppointment(null, true);
+                return;
+            }
+            var time = appointment?.TimeOfDay ?? TimeSpan.Zero;
+            SetAppointment(
+                new DateTimeOffset(value.Value.Date + time, value.Value.Offset),
+                true
+            );
+        }
+    }
+
+    public TimeSpan? AppointmentTime
+    {
+        get => appointment?.TimeOfDay;
+        set
+        {
+            if (value is null)
+            {
+                SetAppointment(null, true);
+                return;
+            }
+            var date = appointment ?? DateTimeOffset.Now;
+            SetAppointment(
+                new DateTimeOffset(date.Date + value.Value, date.Offset),
+                true
+            );
+        }
+    }
+
+    public void ApplyAppointment(DateTimeOffset? value) =>
+        SetAppointment(value, false);
+
+    private void SetAppointment(DateTimeOffset? value, bool dispatchChange)
+    {
+        if (!dispatcherQueue.HasThreadAccess)
+        {
+            _ = dispatcherQueue.TryEnqueue(() => SetAppointment(value, dispatchChange));
+            return;
+        }
+        if (Equals(appointment, value))
+        {
+            return;
+        }
+        appointment = value;
+        PropertyChanged?.Invoke(this, new(nameof(AppointmentDate)));
+        PropertyChanged?.Invoke(this, new(nameof(AppointmentTime)));
+        if (dispatchChange)
+        {
+            dispatch(
+                "appointment_changed",
+                value?.ToUniversalTime().ToString(
+                    "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                    CultureInfo.InvariantCulture
+                )
+            );
         }
     }
 

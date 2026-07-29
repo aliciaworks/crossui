@@ -49,8 +49,8 @@ kotlin {
     jvm()
     android {
         namespace = "com.example.ui.definitions"
-        compileSdk = 35
-        minSdk = 24
+        compileSdk = 37
+        minSdk = 31
     }
     iosArm64()
     iosSimulatorArm64()
@@ -73,9 +73,17 @@ crossui {
 
 The plugin automatically adds the module's JVM artifact and runtime
 dependencies to the provider classpath. It also registers the generated Compose
-directory with `androidMain` and runs generation before Android compilation. A
+directory with `androidMain`, adds Lifecycle Compose 2.11.0, and runs generation
+before Android compilation. The current development baseline is compileSdk 37,
+targetSdk 37, and minSdk 31. This lets generated Android adapters use dynamic
+color and the modern system media picker without legacy branches. A
 dedicated `ui-definitions` module is recommended so generation never creates a
 compile cycle with an application source set.
+
+When `theme.android.dynamicColor` is enabled, Compose output includes an
+opt-in `<TypeName>Theme` wrapper using Material 3 dynamic light/dark color
+schemes. Existing applications with a custom theme can ignore this wrapper and
+keep their own `MaterialTheme`.
 
 ## 3. Provide a typed Kotlin definition
 
@@ -157,7 +165,7 @@ fun SettingsHost(connector: UiConnector<SettingsState, SettingsAction>) {
 ```
 
 `UiConnector` exposes `StateFlow<State>` and accepts typed actions. Generated
-Compose code collects the flow and recomposes normal native controls; it does
+Compose code uses `collectAsStateWithLifecycle()` and recomposes normal native controls; it does
 not render IR or JSON at runtime. Use `visibleWhen`, `enabledWhen`, and bound
 text for state-driven loading, validation, and result UI.
 
@@ -169,8 +177,8 @@ the lifecycle.
 
 For typed documents, the Swift backend emits `<TypeName>Model` using
 `@Observable` and `<TypeName>Connected`. The existing iOS target provides three
-small bridges: an initial Kotlin state snapshot, an observation closure that
-returns a cancellation closure, and a typed action sender. The connected view
+small bridges: an initial Kotlin state snapshot, a `@MainActor` observation
+closure that returns a cancellation closure, and a typed action sender. The connected view
 maps generated event names to exported KMP actions. No IR is interpreted at
 runtime.
 
@@ -180,7 +188,8 @@ The WinUI backend emits both XAML and code-behind. The generated state class
 implements `INotifyPropertyChanged`; editable controls use two-way `x:Bind`,
 while visibility, enabled state, and display text use one-way bindings.
 Construct the control with an `Action<string, string?>` dispatcher and push
-host snapshots through generated `Apply<Property>` methods.
+host snapshots through generated `Apply<Property>` methods. These methods
+marshal property notifications through the control's `DispatcherQueue`.
 
 Kotlin/Native does not directly expose KMP classes as .NET types. CrossUI
 therefore keeps the .NET interop seam explicit instead of pretending that the

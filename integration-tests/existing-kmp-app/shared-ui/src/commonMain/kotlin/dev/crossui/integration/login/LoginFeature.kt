@@ -3,6 +3,7 @@ package dev.crossui.integration.login
 import dev.crossui.dsl.accessibility
 import dev.crossui.dsl.bind
 import dev.crossui.dsl.button
+import dev.crossui.dsl.datePicker
 import dev.crossui.dsl.emailInput
 import dev.crossui.dsl.event
 import dev.crossui.dsl.form
@@ -13,6 +14,9 @@ import dev.crossui.dsl.typedDocument
 import dev.crossui.dsl.enabledWhen
 import dev.crossui.dsl.visibleWhen
 import dev.crossui.ir.SemanticRole
+import dev.crossui.ir.DatePickerMode
+import dev.crossui.ir.AndroidTheme
+import dev.crossui.ir.Theme
 import dev.crossui.ir.UiDocument
 import dev.crossui.ir.UiDocumentProvider
 import dev.crossui.runtime.Async
@@ -28,6 +32,7 @@ data class LoginState(
     val email: String = "",
     val message: String? = null,
     val submission: Async<Unit> = Async.Idle,
+    val appointment: String? = null,
 ) {
     val statusText: String get() = message.orEmpty()
     val isSubmitting: Boolean get() = submission is Async.Loading
@@ -36,6 +41,7 @@ data class LoginState(
 
 sealed interface LoginAction {
     data class EmailChanged(val value: String) : LoginAction
+    data class AppointmentChanged(val value: String?) : LoginAction
     data object Submit : LoginAction
     data object Succeeded : LoginAction
     data class Failed(val error: UiError) : LoginAction
@@ -60,6 +66,9 @@ object LoginReducer : Reducer<LoginState, LoginAction, LoginEffect> {
                 message = null,
                 submission = Async.Idle,
             ),
+        )
+        is LoginAction.AppointmentChanged -> Reduction(
+            state.copy(appointment = action.value),
         )
         LoginAction.Submit -> if ('@' in state.email) {
             Reduction(
@@ -109,6 +118,7 @@ fun createLoginConnector(
 object LoginActions : UiActionMapper<LoginAction> {
     override fun map(action: String, value: String?): LoginAction = when (action) {
         "email_changed" -> LoginAction.EmailChanged(value.orEmpty())
+        "appointment_changed" -> LoginAction.AppointmentChanged(value)
         "submit" -> LoginAction.Submit
         else -> error("Unknown login action: $action")
     }
@@ -128,6 +138,12 @@ fun loginDocument(state: LoginState): UiDocument = typedDocument<LoginState, Log
                 onChange = event("email_changed") { LoginAction.EmailChanged(it) },
             ).accessibility("Email address", SemanticRole.TextField)
             +text("message", bind(LoginState::statusText))
+            +datePicker(
+                key = "appointment",
+                value = bind(LoginState::appointment),
+                mode = DatePickerMode.DateTime,
+                onChange = "appointment_changed",
+            )
             +loading("login-loading", "Signing in")
                 .visibleWhen(bind(LoginState::isSubmitting))
             +button("submit", "Continue", event(LoginAction.Submit))
@@ -136,4 +152,5 @@ fun loginDocument(state: LoginState): UiDocument = typedDocument<LoginState, Log
     },
     stateType = "dev.crossui.integration.login.LoginState",
     actionType = "dev.crossui.integration.login.LoginAction",
+    theme = Theme(android = AndroidTheme(dynamicColor = true)),
 )

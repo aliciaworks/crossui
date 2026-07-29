@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="showcase.welcome" xml:space="preserve">
+    <value>Welcome</value>
+  </data>
+  <data name="showcase.attach_document" xml:space="preserve">
+    <value>Attach document</value>
+  </data>
+  <data name="language.english" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="language.chinese" xml:space="preserve">
+    <value>Chinese</value>
+  </data>
+  <data name="language.japanese" xml:space="preserve">
+    <value>Japanese</value>
+  </data>
+</root>

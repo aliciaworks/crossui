@@ -208,6 +208,7 @@ internal data class WinBindingProperty(
     val csharpType: String,
     val defaultValue: String,
     val action: String?,
+    val temporalMode: DatePickerMode? = null,
 )
 
 internal fun Node.bindingProperties(): List<WinBindingProperty> {
@@ -215,10 +216,15 @@ internal fun Node.bindingProperties(): List<WinBindingProperty> {
     walk { node ->
         node.bindings.forEach { (field, binding) ->
             val propertyName = binding.path.identifier()
-            val type = when (binding.valueType) {
-                "Boolean" -> "bool"
-                "Double", "Float" -> "double"
-                "Int", "Long" -> "long"
+            val temporalMode = (node.kind as? NodeKind.DatePicker)
+                ?.takeIf { field == "value" }
+                ?.mode
+            val type = when {
+                temporalMode == DatePickerMode.Time -> "TimeSpan?"
+                temporalMode != null -> "DateTimeOffset?"
+                binding.valueType == "Boolean" -> "bool"
+                binding.valueType in setOf("Double", "Float") -> "double"
+                binding.valueType in setOf("Int", "Long") -> "long"
                 else -> "string"
             }
             val candidate = WinBindingProperty(
@@ -226,6 +232,7 @@ internal fun Node.bindingProperties(): List<WinBindingProperty> {
                 csharpType = type,
                 defaultValue = node.csharpDefault(field, type),
                 action = node.bindingAction(field),
+                temporalMode = temporalMode,
             )
             properties[propertyName] = properties[propertyName]
                 ?.let { existing ->
@@ -248,6 +255,7 @@ private fun Node.bindingAction(field: String): String? = when (val value = kind)
 }
 
 private fun Node.csharpDefault(field: String, type: String): String = when (type) {
+    "DateTimeOffset?", "TimeSpan?" -> "null"
     "bool" -> when (val value = kind) {
         is NodeKind.Toggle -> value.checked.toString()
         is NodeKind.Checkbox -> value.checked.toString()

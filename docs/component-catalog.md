@@ -1,6 +1,6 @@
 # Component catalog
 
-This table documents the stable CrossUI IR components as of v2.2.
+This table documents the stable CrossUI IR components as of v2.3.
 `native` means the host uses its platform control directly. `adapted`
 preserves the semantic contract using a different native composition.
 `unsupported` is visible to the caller; it never silently becomes another
@@ -27,6 +27,7 @@ component.
 | Divider | ✅ v2.2 | native — `Divider()` | native — `HorizontalDivider()` | native — `Border(1px)` |
 | Card | ✅ v2.2 | native — `VStack` + `.regularMaterial` | native — `ElevatedCard` | native — `Border` w/ card brush |
 | Chip | ✅ v2.2 | adapted — `Capsule` + optional ✕ | native — `InputChip`/`SuggestionChip` | adapted — `Border` + optional `SymbolIcon` |
+| File/Media picker | ✅ v2.3 | semantic button → host `fileImporter`/`PhotosPicker` effect | semantic button → host Activity Result effect | semantic button → host picker effect |
 | PlatformView | ✅ | compile-time error without escape hatch | compile-time error without escape hatch | compile-time error without escape hatch |
 
 `PlatformView` is intentionally outside the portable component set. Use a

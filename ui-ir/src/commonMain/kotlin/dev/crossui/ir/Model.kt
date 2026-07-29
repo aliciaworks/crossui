@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
-const val IR_VERSION: UInt = 4u
+const val IR_VERSION: UInt = 5u
 
 fun interface UiDocumentProvider {
     fun document(): UiDocument
@@ -46,6 +46,25 @@ data class UiDocument(
             }
             (it.kind as? NodeKind.Picker)?.options?.forEach { option ->
                 option.localizedLabel?.validate("${it.key.value}.option.${option.value}")
+            }
+            (it.kind as? NodeKind.ContentPicker)?.let { picker ->
+                require(picker.onRequest.isNotBlank()) {
+                    "Content picker request action cannot be empty: ${it.key.value}"
+                }
+                picker.request.validate(it.key.value)
+            }
+            if (it.kind is NodeKind.DatePicker) {
+                require("value" in it.bindings) {
+                    "DatePicker requires a 'value' binding: ${it.key.value}"
+                }
+            }
+            if (stateType != null) {
+                it.kind.requiredBinding()?.let { field ->
+                    require(field in it.bindings) {
+                        "${it.kind::class.simpleName} requires a '$field' binding " +
+                            "in typed document: ${it.key.value}"
+                    }
+                }
             }
         }
         val settingKeys = mutableSetOf<String>()
@@ -98,36 +117,6 @@ data class UiDocument(
         fun fromJson(value: String): UiDocument =
             CrossUiJson.decodeFromString(serializer(), value).also { it.validate() }
     }
-}
-
-private fun LocalizedText.validate(location: String) {
-    if (this is LocalizedText.Resource) {
-        require(key.isNotBlank()) { "Localized resource key cannot be empty: $location" }
-        require('?' !in key && '#' !in key) {
-            "Localized resource key cannot contain '?' or '#': $location"
-        }
-        require(namespace == null || namespace.isNotBlank()) {
-            "Localized resource namespace cannot be blank: $location"
-        }
-    }
-}
-
-private fun NodeKind.supportedLocalizedFields(): Set<LocalizedField> = when (this) {
-    is NodeKind.Text -> setOf(LocalizedField.Value)
-    is NodeKind.Button -> setOf(LocalizedField.Label)
-    is NodeKind.Input -> setOf(LocalizedField.Placeholder)
-    is NodeKind.Loading -> setOf(LocalizedField.Label)
-    is NodeKind.Route -> setOf(LocalizedField.Title)
-    is NodeKind.Toggle -> setOf(LocalizedField.Label)
-    is NodeKind.Image -> setOf(LocalizedField.Alt)
-    is NodeKind.Dialog -> setOf(
-        LocalizedField.Title,
-        LocalizedField.ConfirmLabel,
-        LocalizedField.CancelLabel,
-    )
-    is NodeKind.Checkbox -> setOf(LocalizedField.Label)
-    is NodeKind.Chip -> setOf(LocalizedField.Label)
-    else -> emptySet()
 }
 
 @Serializable
@@ -379,6 +368,15 @@ sealed interface NodeKind {
         val label: String,
         val variant: ChipVariant = ChipVariant.Input,
         val onDismiss: String? = null,
+    ) : NodeKind
+
+    @Serializable
+    @SerialName("content_picker")
+    data class ContentPicker(
+        val label: String,
+        val request: ContentPickerRequest,
+        val onRequest: String,
+        val variant: ButtonVariant = ButtonVariant.Primary,
     ) : NodeKind
 }
 

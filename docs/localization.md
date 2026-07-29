@@ -55,8 +55,9 @@ Native mode is the default.
 - SwiftUI emits `String(localized:defaultValue:)`. `namespace` selects the
   string catalog table.
 - Compose emits `stringResource(<resource-class>.string.<normalized-key>)`.
-- WinUI emits one-time `x:Bind` properties backed by Windows App SDK
-  `ResourceLoader`, with fallback handling.
+- WinUI emits `x:Bind` properties backed by Windows App SDK
+  `ResourceLoader`, with fallback handling. Call the generated
+  `RefreshLocalization()` method after changing the application language.
 
 Configure the Android resource class in an existing KMP project:
 
@@ -70,6 +71,19 @@ Android resource identifiers replace punctuation with underscores. For example,
 `home.welcome` becomes `home_welcome`. A namespace is prefixed to the key.
 CrossUI references resources owned by the existing project; it does not copy or
 replace the project's XML, string catalogs, or `.resw` files.
+
+Android resource reads react to configuration changes during recomposition.
+The generated Android connector uses lifecycle-aware StateFlow collection.
+SwiftUI resource reads participate in SwiftUI locale invalidation. On WinUI,
+change the language through the host and then refresh the generated bindings:
+
+```csharp
+ApplicationLanguages.PrimaryLanguageOverride = "zh-CN";
+view.RefreshLocalization();
+```
+
+Native WinUI lookup failures return the IR fallback and invoke the generated
+`LocalizationError` diagnostic callback when one is installed.
 
 ## Custom resolver mode
 

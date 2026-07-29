@@ -1,5 +1,6 @@
 package dev.crossui.runtime
 
+import dev.crossui.ir.ContentPickerRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -75,5 +76,27 @@ class RuntimeTest {
         val state = assertIs<Async.Success<String>>(store.state)
         assertEquals("ready", state.value)
         store.close()
+    }
+
+    @Test
+    fun contentPickerHandlerMapsPlatformResultsToTypedActions() = runTest {
+        val handler = ContentPickerEffectHandler<String>(
+            picker = ContentPicker {
+                ContentPickerResult.Selected(
+                    listOf(SelectedContent("opaque://1", "report.pdf", "application/pdf")),
+                )
+            },
+            actionForResult = { result ->
+                when (result) {
+                    is ContentPickerResult.Selected -> "picked:${result.content.single().name}"
+                    else -> null
+                }
+            },
+        )
+
+        assertEquals(
+            "picked:report.pdf",
+            handler.execute(PickContent(ContentPickerRequest.Files())).also { advanceUntilIdle() },
+        )
     }
 }

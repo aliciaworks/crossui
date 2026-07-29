@@ -8,8 +8,8 @@ kotlin {
     jvm()
     android {
         namespace = "dev.crossui.runtime"
-        compileSdk = 35
-        minSdk = 24
+        compileSdk = 37
+        minSdk = 31
         withHostTest {}
     }
     js {
@@ -35,6 +35,9 @@ kotlin {
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+        }
+        androidMain.dependencies {
+            api("androidx.activity:activity-ktx:1.13.0")
         }
     }
 }
