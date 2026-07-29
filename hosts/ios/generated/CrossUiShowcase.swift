@@ -12,74 +12,78 @@ struct CrossUiShowcase: View {
         // crossui-node:app
         TabView {
             // crossui-node:login
-            VStack {
-                // crossui-node:login-content
-                VStack(spacing: 16) {
-                    // crossui-node:heading
-                    Text(String(localized: "showcase.welcome", defaultValue: "Welcome")).font(.largeTitle)
-                    // crossui-node:logo
-                    AsyncImage(url: URL(string: "https://example.com/logo.png")).accessibilityLabel("App logo")
-                    // crossui-node:email
-                    TextField("you@example.com", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).keyboardType(.emailAddress).accessibilityLabel("Email")
-                    // crossui-node:password
-                    SecureField("Password", text: Binding(get: { state.password }, set: { dispatch("password_changed", $0) })).submitLabel(.go).accessibilityLabel("Password")
-                    // crossui-node:search
-                    TextField("Search…", text: Binding(get: { state.search }, set: { dispatch("search_changed", $0) })).submitLabel(.search)
-                    // crossui-node:remember
-                    Toggle("Remember me", isOn: Binding(get: { state.remember }, set: { dispatch("remember_changed", String(describing: $0)) }))
-                    // crossui-node:volume-label
-                    Text(state.volumeLabel).font(.body)
-                    // crossui-node:volume
-                    Slider(value: Binding(get: { state.volume }, set: { dispatch("volume_changed", String(describing: $0)) }), in: 0.0...1.0, step: 0.05).accessibilityLabel("Volume")
-                    // crossui-node:terms
-                    Button { dispatch("terms_changed", String(!state.termsAccepted)) } label: { Label("I agree to the Terms", systemImage: state.termsAccepted ? "checkmark.square.fill" : "square") }
-                    // crossui-node:chips
-                    HStack(spacing: 16) {
-                        // crossui-node:ios
-                        HStack { Text("iOS") }
-                        // crossui-node:android
-                        HStack { Text("Android") }
-                        // crossui-node:active
-                        HStack { Text("Active"); Button { dispatch("remove_active", nil) } label: { Image(systemName: "xmark") } }
+            ScrollView {
+                VStack {
+                    // crossui-node:login-content
+                    VStack(spacing: 16) {
+                        // crossui-node:heading
+                        Text(String(localized: "showcase.welcome", defaultValue: "Welcome")).font(.largeTitle)
+                        // crossui-node:logo
+                        AsyncImage(url: URL(string: "https://example.com/logo.png")).accessibilityLabel("App logo")
+                        // crossui-node:email
+                        TextField("you@example.com", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).keyboardType(.emailAddress).accessibilityLabel("Email")
+                        // crossui-node:password
+                        SecureField("Password", text: Binding(get: { state.password }, set: { dispatch("password_changed", $0) })).submitLabel(.go).accessibilityLabel("Password")
+                        // crossui-node:search
+                        TextField("Search…", text: Binding(get: { state.search }, set: { dispatch("search_changed", $0) })).submitLabel(.search)
+                        // crossui-node:remember
+                        Toggle("Remember me", isOn: Binding(get: { state.remember }, set: { dispatch("remember_changed", String(describing: $0)) }))
+                        // crossui-node:volume-label
+                        Text(state.volumeLabel).font(.body)
+                        // crossui-node:volume
+                        Slider(value: Binding(get: { state.volume }, set: { dispatch("volume_changed", String(describing: $0)) }), in: 0.0...1.0, step: 0.05).accessibilityLabel("Volume")
+                        // crossui-node:terms
+                        Button { dispatch("terms_changed", String(!state.termsAccepted)) } label: { Label("I agree to the Terms", systemImage: state.termsAccepted ? "checkmark.square.fill" : "square") }
+                        // crossui-node:chips
+                        HStack(spacing: 16) {
+                            // crossui-node:ios
+                            HStack { Text("iOS") }
+                            // crossui-node:android
+                            HStack { Text("Android") }
+                            // crossui-node:active
+                            HStack { Text("Active"); Button { dispatch("remove_active", nil) } label: { Image(systemName: "xmark") } }
+                        }
+                        // crossui-node:separator
+                        Divider()
+                        // crossui-node:language
+                        Picker("", selection: Binding(get: { state.language }, set: { dispatch("language_changed", String(describing: $0)) })) {
+                            Text(String(localized: "language.english", defaultValue: "English")).tag("en-US")
+                            Text(String(localized: "language.chinese", defaultValue: "中文")).tag("zh-CN")
+                            Text(String(localized: "language.japanese", defaultValue: "日本語")).tag("ja-JP")
+                        }
+                        // crossui-node:actions
+                        HStack(spacing: 16) {
+                            // crossui-node:submit
+                            Button("Continue") { dispatch("submit", nil) }.accessibilityLabel("Continue").keyboardShortcut("↩", modifiers: [.command])
+                            // crossui-node:delete
+                            Button("Delete", role: .destructive) { dispatch("show_delete", nil) }.accessibilityLabel("Delete account")
+                        }
+                        // crossui-node:attachment
+                        Button(String(localized: "showcase.attach_document", defaultValue: "Attach document")) { dispatch("pick_attachment", nil) }
+                        // crossui-node:photos
+                        Button("Choose photos") { dispatch("pick_photos", nil) }
+                        // crossui-node:picker-status
+                        Text(state.pickerStatus).font(.body)
+                        // crossui-node:summary
+                        GroupBox {
+                            // crossui-node:summary-copy
+                            Text("Generated native controls").font(.body)
+                        }
+                        // crossui-node:legal
+                        Text("By continuing you agree to our Terms").font(.footnote)
                     }
-                    // crossui-node:separator
-                    Divider()
-                    // crossui-node:language
-                    Picker("", selection: Binding(get: { state.language }, set: { dispatch("language_changed", String(describing: $0)) })) {
-                        Text(String(localized: "language.english", defaultValue: "English")).tag("en-US")
-                        Text(String(localized: "language.chinese", defaultValue: "中文")).tag("zh-CN")
-                        Text(String(localized: "language.japanese", defaultValue: "日本語")).tag("ja-JP")
-                    }
-                    // crossui-node:actions
-                    HStack(spacing: 16) {
-                        // crossui-node:submit
-                        Button("Continue") { dispatch("submit", nil) }.accessibilityLabel("Continue")
-                        // crossui-node:delete
-                        Button("Delete", role: .destructive) { dispatch("show_delete", nil) }.accessibilityLabel("Delete account")
-                    }
-                    // crossui-node:attachment
-                    Button(String(localized: "showcase.attach_document", defaultValue: "Attach document")) { dispatch("pick_attachment", nil) }
-                    // crossui-node:photos
-                    Button("Choose photos") { dispatch("pick_photos", nil) }
-                    // crossui-node:picker-status
-                    Text(state.pickerStatus).font(.body)
-                    // crossui-node:summary
-                    GroupBox {
-                        // crossui-node:summary-copy
-                        Text("Generated native controls").font(.body)
-                    }
-                    // crossui-node:legal
-                    Text("By continuing you agree to our Terms").font(.footnote)
                 }
             }.navigationTitle("Sign in").tabItem { Text("Sign in") }
             // crossui-node:settings
-            VStack {
-                // crossui-node:settings-title
-                Text("App Preferences").font(.title)
-                // crossui-node:dark-mode
-                Toggle("Dark Mode", isOn: Binding(get: { state.darkMode }, set: { dispatch("dark_mode_changed", String(describing: $0)) }))
+            ScrollView {
+                VStack {
+                    // crossui-node:settings-title
+                    Text("App Preferences").font(.title)
+                    // crossui-node:dark-mode
+                    Toggle("Dark Mode", isOn: Binding(get: { state.darkMode }, set: { dispatch("dark_mode_changed", String(describing: $0)) }))
+                }
             }.navigationTitle("Settings").tabItem { Text("Settings") }
-        }
+        }.tabViewStyle(.sidebarAdaptable)
     }
 }
 

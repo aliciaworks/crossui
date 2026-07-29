@@ -3,6 +3,7 @@ package dev.crossui.compiler
 import dev.crossui.dsl.*
 import dev.crossui.ir.DatePickerMode
 import dev.crossui.ir.AndroidTheme
+import dev.crossui.ir.KeyModifier
 import dev.crossui.ir.Theme
 import dev.crossui.ir.NodeKind
 import dev.crossui.ir.Platform
@@ -56,6 +57,64 @@ class CompilerTest {
         assertTrue(generated.contains("dynamicDarkColorScheme(context)"))
         assertTrue(generated.contains("dynamicLightColorScheme(context)"))
         assertTrue(generated.contains("isSystemInDarkTheme()"))
+    }
+
+    @Test
+    fun composeMakesRootContainersVerticallyScrollable() {
+        val generated = CrossUiCompiler.generate(
+            document,
+            setOf(ExportTarget.JetpackCompose),
+            typeName = "HomeView",
+        ).single().content
+
+        assertTrue(
+            generated.contains(
+                "Column(modifier = Modifier.widthIn(max = 720.dp).fillMaxSize()" +
+                    ".verticalScroll(rememberScrollState())",
+            ),
+        )
+    }
+
+    @Test
+    fun largeScreenNavigationUsesNativeAdaptivePatterns() {
+        val source = document(
+            tabNavigation(
+                "main",
+                "home",
+                listOf(
+                    route("home", "Home") { +text("welcome", "Welcome") },
+                    route("settings", "Settings") { +text("prefs", "Preferences") },
+                ),
+            ),
+        )
+        val generated = CrossUiCompiler.generate(source, typeName = "AdaptiveView")
+        val compose = generated.single {
+            it.target == ExportTarget.JetpackCompose
+        }.content
+        val swift = generated.single { it.target == ExportTarget.SwiftUi }.content
+
+        assertTrue(compose.contains("if (maxWidth >= 600.dp)"))
+        assertTrue(compose.contains("NavigationRailItem"))
+        assertTrue(compose.contains("NavigationBarItem"))
+        assertTrue(swift.contains(".tabViewStyle(.sidebarAdaptable)"))
+    }
+
+    @Test
+    fun swiftLowersMacKeyboardShortcuts() {
+        val source = document(
+            button("save", "Save", "save")
+                .macShortcut("s", listOf(KeyModifier.Command, KeyModifier.Shift)),
+        )
+        val swift = CrossUiCompiler.generate(
+            source,
+            setOf(ExportTarget.SwiftUi),
+        ).single().content
+
+        assertTrue(
+            swift.contains(
+                ".keyboardShortcut(\"s\", modifiers: [.command, .shift])",
+            ),
+        )
     }
 
     @Test

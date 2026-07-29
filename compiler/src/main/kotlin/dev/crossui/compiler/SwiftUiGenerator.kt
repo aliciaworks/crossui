@@ -12,7 +12,20 @@ internal object SwiftUiGenerator : CodeGenerator {
         nativeViews: NativeViewRegistry,
         localization: LocalizationRegistry,
     ): List<GeneratedSource> {
-        val body = swiftNode(document.document.root, 2, nativeViews, localization)
+        val adaptiveContent = document.document.root.kind !is NodeKind.Navigation &&
+            document.document.root.kind !is NodeKind.ListNode
+        val body = swiftNode(
+            document.document.root,
+            if (adaptiveContent) 3 else 2,
+            nativeViews,
+            localization,
+        ).let {
+            if (adaptiveContent) {
+                "        ${typeName}AdaptiveContent {\n$it\n        }"
+            } else {
+                it
+            }
+        }
         val stateType = document.document.stateType
         val actionType = document.document.actionType
         val state = stateType?.let {
@@ -35,6 +48,11 @@ internal object SwiftUiGenerator : CodeGenerator {
         } else {
             ""
         }
+        val adaptiveHelper = if (adaptiveContent) {
+            swiftAdaptiveContent(typeName)
+        } else {
+            ""
+        }
         return listOf(
             GeneratedSource(
                 target,
@@ -52,7 +70,7 @@ internal object SwiftUiGenerator : CodeGenerator {
                 |    var body: some View {
                 |$body
                 |    }
-                |}$connector$temporalCodec
+                |}$connector$adaptiveHelper$temporalCodec
                 |""".trimMargin().trimEnd() + "\n",
             ),
         )
@@ -186,7 +204,7 @@ internal object SwiftUiGenerator : CodeGenerator {
                     localization,
                 )
                 "$i${"Button($label$role) { dispatch(\"${kind.action.swift()}\", nil) }"}" +
-                    enabled(node) + accessibility(node)
+                    enabled(node) + accessibility(node) + keyboardShortcut(node)
             }
             is NodeKind.Input -> {
                 val prompt = node.swiftText(
@@ -222,10 +240,17 @@ internal object SwiftUiGenerator : CodeGenerator {
             }
             is NodeKind.Navigation ->
                 navigation(node, kind, depth, i, nativeViews, localization)
-            is NodeKind.Route ->
-                "$i${"VStack {\n${child(1)}\n$i}"}.navigationTitle(" +
+            is NodeKind.Route -> {
+                val stack = "$i${"VStack {\n${child(1)}\n$i}"}"
+                val content = if (node.anyNode {
+                        it !== node &&
+                            (it.kind is NodeKind.Form || it.kind is NodeKind.ListNode)
+                    }
+                ) stack else "$i${"ScrollView {\n${stack.prependIndent("    ")}\n$i}"}"
+                content + ".navigationTitle(" +
                     node.swiftText(LocalizedField.Title, kind.title, localization) + ")" +
                     if (kind.respectSafeArea) "" else ".ignoresSafeArea()"
+            }
             is NodeKind.PlatformView -> nativeViews.render(
                 target,
                 kind.name,
@@ -266,7 +291,7 @@ internal object SwiftUiGenerator : CodeGenerator {
                 }
                 val label = node.swiftText(LocalizedField.Label, kind.label, localization)
                 "$i${"Button($label$role) { dispatch(\"${kind.onRequest.swift()}\", nil) }"}" +
-                    enabled(node) + accessibility(node)
+                    enabled(node) + accessibility(node) + keyboardShortcut(node)
             }
         }
         val visible = node.bindings["visible"]
@@ -277,6 +302,24 @@ internal object SwiftUiGenerator : CodeGenerator {
         }
         return marker + rendered
     }
+
+    private fun swiftAdaptiveContent(typeName: String): String = """
+        |
+        |
+        |@ViewBuilder
+        |private func ${typeName}AdaptiveContent<Content: View>(
+        |    @ViewBuilder content: () -> Content
+        |) -> some View {
+        |    content()
+        |        .frame(maxWidth: 720, alignment: .topLeading)
+        |        .frame(
+        |            maxWidth: .infinity,
+        |            maxHeight: .infinity,
+        |            alignment: .top
+        |        )
+        |        .padding(.horizontal, 20)
+        |}
+        |""".trimMargin()
 
     private fun datePicker(
         node: Node,
@@ -361,7 +404,7 @@ internal object SwiftUiGenerator : CodeGenerator {
                     val title = (route.kind as? NodeKind.Route)?.title ?: route.key.value
                     swiftNode(route, depth + 1, nativeViews, localization) +
                         ".tabItem { Text(${route.swiftText(LocalizedField.Title, title, localization)}) }"
-                } + "\n$indentation}"
+                } + "\n$indentation}.tabViewStyle(.sidebarAdaptable)"
         } else {
             "$indentation${"NavigationStack {\n${selected?.let { swiftNode(it, depth + 1, nativeViews, localization) }.orEmpty()}\n$indentation}"}"
         }
@@ -416,6 +459,23 @@ internal object SwiftUiGenerator : CodeGenerator {
         node.semantics.label?.let {
             ".accessibilityLabel(\"${it.swift()}\")"
         }.orEmpty()
+
+    private fun keyboardShortcut(node: Node): String {
+        val shortcut = node.extensions
+            .filterIsInstance<PlatformExtension.MacOs>()
+            .map { it.value }
+            .filterIsInstance<MacOsExtension.KeyboardShortcut>()
+            .firstOrNull()
+            ?: return ""
+        val modifiers = shortcut.modifiers.joinToString(", ") {
+            ".${it.name.lowercase()}"
+        }
+        return if (modifiers.isEmpty()) {
+            ".keyboardShortcut(\"${shortcut.key.swift()}\")"
+        } else {
+            ".keyboardShortcut(\"${shortcut.key.swift()}\", modifiers: [$modifiers])"
+        }
+    }
 
     private fun keyboard(type: InputType) = when (type) {
         InputType.Email -> ".keyboardType(.emailAddress)"

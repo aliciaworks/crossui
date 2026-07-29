@@ -9,26 +9,30 @@ struct CrossUiTypedFixture: View {
     let dispatch: (_ action: String, _ value: String?) -> Void
 
     var body: some View {
-        // crossui-node:fixture
-        VStack {
-            // crossui-node:fixture-content
-            VStack(spacing: 16) {
-                // crossui-node:fixture-email
-                TextField("Email address", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).keyboardType(.emailAddress)
-                // crossui-node:fixture-status
-                Text(state.status).font(.body)
-                // crossui-node:fixture-loading
-                if state.isSubmitting {
-                    ProgressView("Signing in")
+        CrossUiTypedFixtureAdaptiveContent {
+            // crossui-node:fixture
+            ScrollView {
+                VStack {
+                    // crossui-node:fixture-content
+                    VStack(spacing: 16) {
+                        // crossui-node:fixture-email
+                        TextField("Email address", text: Binding(get: { state.email }, set: { dispatch("email_changed", $0) })).keyboardType(.emailAddress)
+                        // crossui-node:fixture-status
+                        Text(state.status).font(.body)
+                        // crossui-node:fixture-loading
+                        if state.isSubmitting {
+                            ProgressView("Signing in")
+                        }
+                        // crossui-node:fixture-submit
+                        Button(String(localized: "fixture.continue", defaultValue: "Continue")) { dispatch("submit", nil) }.disabled(!state.canSubmit)
+                        // crossui-node:fixture-dark-mode
+                        Toggle(String(localized: "fixture.dark_mode", defaultValue: "Dark Mode"), isOn: Binding(get: { state.darkMode }, set: { dispatch("dark_mode_changed", String(describing: $0)) }))
+                        // crossui-node:fixture-appointment
+                        DatePicker("", selection: Binding(get: { CrossUiTemporalCodec.decode(state.appointment, mode: .dateTime) }, set: { dispatch("appointment_changed", CrossUiTemporalCodec.encode($0, mode: .dateTime)) }), displayedComponents: [.date, .hourAndMinute])
+                    }
                 }
-                // crossui-node:fixture-submit
-                Button(String(localized: "fixture.continue", defaultValue: "Continue")) { dispatch("submit", nil) }.disabled(!state.canSubmit)
-                // crossui-node:fixture-dark-mode
-                Toggle(String(localized: "fixture.dark_mode", defaultValue: "Dark Mode"), isOn: Binding(get: { state.darkMode }, set: { dispatch("dark_mode_changed", String(describing: $0)) }))
-                // crossui-node:fixture-appointment
-                DatePicker("", selection: Binding(get: { CrossUiTemporalCodec.decode(state.appointment, mode: .dateTime) }, set: { dispatch("appointment_changed", CrossUiTemporalCodec.encode($0, mode: .dateTime)) }), displayedComponents: [.date, .hourAndMinute])
-            }
-        }.navigationTitle(String(localized: "fixture.title", defaultValue: "Typed binding fixture"))
+            }.navigationTitle(String(localized: "fixture.title", defaultValue: "Typed binding fixture"))
+        }
     }
 }
 
@@ -86,6 +90,21 @@ struct CrossUiTypedFixtureConnected: View {
             }
         }
     }
+}
+
+
+@ViewBuilder
+private func CrossUiTypedFixtureAdaptiveContent<Content: View>(
+    @ViewBuilder content: () -> Content
+) -> some View {
+    content()
+        .frame(maxWidth: 720, alignment: .topLeading)
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity,
+            alignment: .top
+        )
+        .padding(.horizontal, 20)
 }
 
 

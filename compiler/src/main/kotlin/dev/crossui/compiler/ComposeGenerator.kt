@@ -12,11 +12,15 @@ internal object ComposeGenerator : CodeGenerator {
         nativeViews: NativeViewRegistry,
         localization: LocalizationRegistry,
     ): List<GeneratedSource> {
+        val rootVerticalScroll = !document.document.root.anyNode {
+            it.kind is NodeKind.ListNode
+        }
         val body = composeNode(
             document.document.root,
-            1,
+            2,
             nativeViews,
             localization,
+            rootVerticalScroll,
         )
         val stateType = document.document.stateType
         val actionType = document.document.actionType
@@ -95,9 +99,12 @@ internal object ComposeGenerator : CodeGenerator {
                 |import androidx.compose.foundation.layout.*
                 |import androidx.compose.foundation.lazy.LazyColumn
                 |import androidx.compose.foundation.lazy.items
+                |import androidx.compose.foundation.rememberScrollState
                 |import androidx.compose.foundation.text.KeyboardOptions
+                |import androidx.compose.foundation.verticalScroll
                 |import androidx.compose.material3.*
                 |import androidx.compose.runtime.*
+                |import androidx.compose.ui.Alignment
                 |import androidx.compose.ui.Modifier
                 |import androidx.compose.ui.res.stringResource
                 |import androidx.compose.ui.text.input.KeyboardType
@@ -108,7 +115,9 @@ internal object ComposeGenerator : CodeGenerator {
                 |@OptIn(ExperimentalMaterial3Api::class)
                 |@Composable
                 |fun $typeName(${stateParameter}dispatch: (action: String, value: String?) -> Unit) {
+                |    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 |$body
+                |    }
                 |}$connector$themeAdapter$temporalCodec
                 |""".trimMargin().trimEnd() + "\n",
             ),
@@ -166,6 +175,7 @@ internal object ComposeGenerator : CodeGenerator {
         depth: Int,
         nativeViews: NativeViewRegistry,
         localization: LocalizationRegistry,
+        rootVerticalScroll: Boolean = false,
     ): String {
         val i = "    ".repeat(depth)
         val marker = "$i// crossui-node:${node.key.value}\n"
@@ -185,17 +195,18 @@ internal object ComposeGenerator : CodeGenerator {
                 } else {
                     "verticalArrangement"
                 }
-                "$i$layout($arrangement = Arrangement.spacedBy(${spacing(kind.spacing)}.dp)) {\n${child(1)}\n$i}"
+                val modifier = rootScrollModifier(depth, rootVerticalScroll)
+                "$i$layout($modifier$arrangement = Arrangement.spacedBy(${spacing(kind.spacing)}.dp)) {\n${child(1)}\n$i}"
             }
             is NodeKind.ListNode ->
                 "$i${"LazyColumn { item {\n${child(2)}\n${"    ".repeat(depth + 1)}}\n$i}"}"
             NodeKind.Form ->
-                "$i${"Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {\n${child(1)}\n$i}"}"
+                "$i${"Column(${rootScrollModifier(depth, rootVerticalScroll)}verticalArrangement = Arrangement.spacedBy(16.dp)) {\n${child(1)}\n$i}"}"
             is NodeKind.Loading -> "$i${"CircularProgressIndicator()"}"
             is NodeKind.Navigation ->
                 navigation(node, kind, depth, i, nativeViews, localization)
             is NodeKind.Route ->
-                "$i${"Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {\n${child(1)}\n$i}"}"
+                "$i${"Column(${rootScrollModifier(depth, rootVerticalScroll)}verticalArrangement = Arrangement.spacedBy(16.dp)) {\n${child(1)}\n$i}"}"
             is NodeKind.PlatformView -> nativeViews.render(
                 target,
                 kind.name,
@@ -237,6 +248,16 @@ internal object ComposeGenerator : CodeGenerator {
             "$i${"if (state.${visible.path}) {"}\n${generated.prependIndent("    ")}\n$i}"
         }
         return marker + rendered
+    }
+
+    private fun rootScrollModifier(
+        depth: Int,
+        enabled: Boolean,
+    ): String = if (depth == 2 && enabled) {
+        "modifier = Modifier.widthIn(max = 720.dp).fillMaxSize()" +
+            ".verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), "
+    } else {
+        ""
     }
 
     private fun text(
@@ -304,19 +325,71 @@ internal object ComposeGenerator : CodeGenerator {
                 composeNode(it, depth, nativeViews, localization)
             } ?: "${i}Spacer(Modifier)"
         }
-        return "$i${"Column {\n${"    ".repeat(depth + 1)}NavigationBar {\n"}" +
-            node.children.joinToString("\n") { route ->
-                val title = (route.kind as? NodeKind.Route)?.title ?: route.key.value
-                val label = route.composeText(
-                    LocalizedField.Title,
-                    title,
-                    localization,
-                )
-                "${"    ".repeat(depth + 2)}NavigationBarItem(selected = ${route.key.value == kind.active}, onClick = { dispatch(\"navigate\", \"${route.key.value.kotlin()}\") }, icon = {}, label = { Text($label) })"
-            } + "\n${"    ".repeat(depth + 1)}}\n" +
-            selected?.let {
-                composeNode(it, depth + 1, nativeViews, localization)
-            }.orEmpty() + "\n$i}"
+        val railItems = navigationItems(
+            node,
+            kind,
+            depth + 3,
+            localization,
+            "NavigationRailItem",
+        )
+        val barItems = navigationItems(
+            node,
+            kind,
+            depth + 3,
+            localization,
+            "NavigationBarItem",
+        )
+        val content = selected?.let {
+            composeNode(it, depth + 2, nativeViews, localization)
+        }.orEmpty()
+        val contentName = "crossUiContent${node.key.value.identifier()}"
+        val scroll = if (selected?.anyNode { it.kind is NodeKind.ListNode } == true) {
+            ""
+        } else {
+            ".verticalScroll(rememberScrollState())"
+        }
+        return """
+            |${i}BoxWithConstraints(Modifier.fillMaxSize()) {
+            |${i}    val $contentName: @Composable () -> Unit = {
+            |$content
+            |${i}    }
+            |${i}    if (maxWidth >= 600.dp) {
+            |${i}        Row(Modifier.fillMaxSize()) {
+            |${i}            NavigationRail {
+            |$railItems
+            |${i}            }
+            |${i}            Box(Modifier.weight(1f).fillMaxHeight()$scroll.padding(horizontal = 24.dp), contentAlignment = Alignment.TopCenter) {
+            |${i}                Box(Modifier.widthIn(max = 840.dp).fillMaxWidth()) {
+            |${i}                    $contentName()
+            |${i}                }
+            |${i}            }
+            |${i}        }
+            |${i}    } else {
+            |${i}        Column(Modifier.fillMaxSize()) {
+            |${i}            Box(Modifier.weight(1f).fillMaxWidth()$scroll.padding(horizontal = 16.dp)) {
+            |${i}                $contentName()
+            |${i}            }
+            |${i}            NavigationBar {
+            |$barItems
+            |${i}            }
+            |${i}        }
+            |${i}    }
+            |${i}}
+        """.trimMargin()
+    }
+
+    private fun navigationItems(
+        node: Node,
+        kind: NodeKind.Navigation,
+        depth: Int,
+        localization: LocalizationRegistry,
+        component: String,
+    ): String = node.children.joinToString("\n") { route ->
+        val title = (route.kind as? NodeKind.Route)?.title ?: route.key.value
+        val label = route.composeText(LocalizedField.Title, title, localization)
+        "${"    ".repeat(depth)}$component(selected = " +
+            "${route.key.value == kind.active}, onClick = { dispatch(\"navigate\", " +
+            "\"${route.key.value.kotlin()}\") }, icon = {}, label = { Text($label) })"
     }
 
     private fun picker(

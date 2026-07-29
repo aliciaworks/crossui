@@ -74,6 +74,8 @@ Localization supports native project resources and compile-time custom
 resolvers; see [`docs/localization.md`](docs/localization.md).
 Date and time controls use one cross-platform wire format; see
 [`docs/temporal-values.md`](docs/temporal-values.md).
+Large-screen navigation and content width adapt to the current window; see
+[`docs/adaptive-layouts.md`](docs/adaptive-layouts.md).
 
 File and media request semantics integrate with host-native async pickers; see
 [`docs/content-pickers.md`](docs/content-pickers.md).

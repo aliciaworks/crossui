@@ -4,9 +4,12 @@ package dev.crossui.generated
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -22,68 +25,91 @@ import androidx.compose.ui.platform.LocalContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrossUiShowcase(state: ShowcaseState, dispatch: (action: String, value: String?) -> Unit) {
-    // crossui-node:app
-    Column {
-        NavigationBar {
-            NavigationBarItem(selected = true, onClick = { dispatch("navigate", "login") }, icon = {}, label = { Text("Sign in") })
-            NavigationBarItem(selected = false, onClick = { dispatch("navigate", "settings") }, icon = {}, label = { Text("Settings") })
-        }
-        // crossui-node:login
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // crossui-node:login-content
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // crossui-node:heading
-                Text(stringResource(R.string.showcase_welcome))
-                // crossui-node:logo
-                AsyncImage(model = "https://example.com/logo.png", contentDescription = "App logo")
-                // crossui-node:email
-                OutlinedTextField(value = state.email, onValueChange = { dispatch("email_changed", it) }, label = { Text("you@example.com") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
-                // crossui-node:password
-                OutlinedTextField(value = state.password, onValueChange = { dispatch("password_changed", it) }, label = { Text("Password") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), visualTransformation = PasswordVisualTransformation())
-                // crossui-node:search
-                OutlinedTextField(value = state.search, onValueChange = { dispatch("search_changed", it) }, label = { Text("Search…") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-                // crossui-node:remember
-                Row { Switch(checked = state.remember, onCheckedChange = { dispatch("remember_changed", it.toString()) }, enabled = true); Text("Remember me") }
-                // crossui-node:volume-label
-                Text(state.volumeLabel)
-                // crossui-node:volume
-                Slider(value = state.volume, onValueChange = { dispatch("volume_changed", it.toString()) }, valueRange = 0.0f..1.0f, enabled = true)
-                // crossui-node:terms
-                Row { Checkbox(checked = state.termsAccepted, onCheckedChange = { dispatch("terms_changed", it.toString()) }, enabled = true); Text("I agree to the Terms") }
-                // crossui-node:chips
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // crossui-node:ios
-                    AssistChip(onClick = {}, label = { Text("iOS") })
-                    // crossui-node:android
-                    AssistChip(onClick = {}, label = { Text("Android") })
-                    // crossui-node:active
-                    InputChip(selected = true, onClick = { dispatch("remove_active", null) }, label = { Text("Active") })
-                }
-                // crossui-node:separator
-                HorizontalDivider()
-                // crossui-node:language
-                Column { Text(state.language); TextButton(onClick = { dispatch("language_changed", "en-US") }) { Text(stringResource(R.string.language_english)) }; TextButton(onClick = { dispatch("language_changed", "zh-CN") }) { Text(stringResource(R.string.language_chinese)) }; TextButton(onClick = { dispatch("language_changed", "ja-JP") }) { Text(stringResource(R.string.language_japanese)) } }
-                // crossui-node:actions
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // crossui-node:submit
-                    Button(onClick = { dispatch("submit", null) }, enabled = true) { Text("Continue") }
-                    // crossui-node:delete
-                    Button(onClick = { dispatch("show_delete", null) }, enabled = true) { Text("Delete") }
-                }
-                // crossui-node:attachment
-                Button(onClick = { dispatch("pick_attachment", null) }, enabled = true) { Text(stringResource(R.string.showcase_attach_document)) }
-                // crossui-node:photos
-                Button(onClick = { dispatch("pick_photos", null) }, enabled = true) { Text("Choose photos") }
-                // crossui-node:picker-status
-                Text(state.pickerStatus)
-                // crossui-node:summary
-                Card { Column(Modifier.padding(16.dp)) {
-                        // crossui-node:summary-copy
-                        Text("Generated native controls")
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        // crossui-node:app
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val crossUiContentApp: @Composable () -> Unit = {
+                // crossui-node:login
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // crossui-node:login-content
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // crossui-node:heading
+                        Text(stringResource(R.string.showcase_welcome))
+                        // crossui-node:logo
+                        AsyncImage(model = "https://example.com/logo.png", contentDescription = "App logo")
+                        // crossui-node:email
+                        OutlinedTextField(value = state.email, onValueChange = { dispatch("email_changed", it) }, label = { Text("you@example.com") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+                        // crossui-node:password
+                        OutlinedTextField(value = state.password, onValueChange = { dispatch("password_changed", it) }, label = { Text("Password") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), visualTransformation = PasswordVisualTransformation())
+                        // crossui-node:search
+                        OutlinedTextField(value = state.search, onValueChange = { dispatch("search_changed", it) }, label = { Text("Search…") }, enabled = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+                        // crossui-node:remember
+                        Row { Switch(checked = state.remember, onCheckedChange = { dispatch("remember_changed", it.toString()) }, enabled = true); Text("Remember me") }
+                        // crossui-node:volume-label
+                        Text(state.volumeLabel)
+                        // crossui-node:volume
+                        Slider(value = state.volume, onValueChange = { dispatch("volume_changed", it.toString()) }, valueRange = 0.0f..1.0f, enabled = true)
+                        // crossui-node:terms
+                        Row { Checkbox(checked = state.termsAccepted, onCheckedChange = { dispatch("terms_changed", it.toString()) }, enabled = true); Text("I agree to the Terms") }
+                        // crossui-node:chips
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            // crossui-node:ios
+                            AssistChip(onClick = {}, label = { Text("iOS") })
+                            // crossui-node:android
+                            AssistChip(onClick = {}, label = { Text("Android") })
+                            // crossui-node:active
+                            InputChip(selected = true, onClick = { dispatch("remove_active", null) }, label = { Text("Active") })
+                        }
+                        // crossui-node:separator
+                        HorizontalDivider()
+                        // crossui-node:language
+                        Column { Text(state.language); TextButton(onClick = { dispatch("language_changed", "en-US") }) { Text(stringResource(R.string.language_english)) }; TextButton(onClick = { dispatch("language_changed", "zh-CN") }) { Text(stringResource(R.string.language_chinese)) }; TextButton(onClick = { dispatch("language_changed", "ja-JP") }) { Text(stringResource(R.string.language_japanese)) } }
+                        // crossui-node:actions
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            // crossui-node:submit
+                            Button(onClick = { dispatch("submit", null) }, enabled = true) { Text("Continue") }
+                            // crossui-node:delete
+                            Button(onClick = { dispatch("show_delete", null) }, enabled = true) { Text("Delete") }
+                        }
+                        // crossui-node:attachment
+                        Button(onClick = { dispatch("pick_attachment", null) }, enabled = true) { Text(stringResource(R.string.showcase_attach_document)) }
+                        // crossui-node:photos
+                        Button(onClick = { dispatch("pick_photos", null) }, enabled = true) { Text("Choose photos") }
+                        // crossui-node:picker-status
+                        Text(state.pickerStatus)
+                        // crossui-node:summary
+                        Card { Column(Modifier.padding(16.dp)) {
+                                // crossui-node:summary-copy
+                                Text("Generated native controls")
+                            }
+                        }
+                        // crossui-node:legal
+                        Text("By continuing you agree to our Terms")
                     }
                 }
-                // crossui-node:legal
-                Text("By continuing you agree to our Terms")
+            }
+            if (maxWidth >= 600.dp) {
+                Row(Modifier.fillMaxSize()) {
+                    NavigationRail {
+                    NavigationRailItem(selected = true, onClick = { dispatch("navigate", "login") }, icon = {}, label = { Text("Sign in") })
+                    NavigationRailItem(selected = false, onClick = { dispatch("navigate", "settings") }, icon = {}, label = { Text("Settings") })
+                    }
+                    Box(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp), contentAlignment = Alignment.TopCenter) {
+                        Box(Modifier.widthIn(max = 840.dp).fillMaxWidth()) {
+                            crossUiContentApp()
+                        }
+                    }
+                }
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+                        crossUiContentApp()
+                    }
+                    NavigationBar {
+                    NavigationBarItem(selected = true, onClick = { dispatch("navigate", "login") }, icon = {}, label = { Text("Sign in") })
+                    NavigationBarItem(selected = false, onClick = { dispatch("navigate", "settings") }, icon = {}, label = { Text("Settings") })
+                    }
+                }
             }
         }
     }
