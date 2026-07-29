@@ -3,11 +3,15 @@ package dev.crossui.gradle
 import dev.crossui.ir.Node
 import dev.crossui.ir.NodeKey
 import dev.crossui.ir.NodeKind
+import dev.crossui.ir.LocalizedField
+import dev.crossui.ir.LocalizedText
 import dev.crossui.ir.UiDocument
 import dev.crossui.ir.UiDocumentProvider
 import java.nio.file.Files
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.gradle.testfixtures.ProjectBuilder
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -90,4 +94,92 @@ class CrossUiPluginTest {
             },
         )
     }
+
+    @Test
+    fun generatesAndVerifiesNativeLocalizationSources() {
+        val directory = createTempDirectory("crossui-plugin-localization")
+        val project = ProjectBuilder.builder().withProjectDir(directory.toFile()).build()
+        project.pluginManager.apply(CrossUiPlugin::class.java)
+        val input = directory.resolve("ui.json")
+        Files.writeString(input, localizedDocument().toJson())
+
+        val extension = project.extensions.getByType(CrossUiExtension::class.java)
+        extension.input.set(input.toFile())
+        extension.localization.mode.set(LocalizationMode.Generated)
+        extension.localization.sourceLocale.set("en-US")
+        extension.localization.outputDirectory.set(
+            directory.resolve("localization").toFile(),
+        )
+
+        val verify = project.tasks.getByName(
+            "verifyLocalization",
+        ) as CrossUiVerifyLocalizationTask
+        assertFailsWith<IllegalStateException> {
+            verify.verifyLocalization()
+        }
+        val generate = project.tasks.getByName(
+            "generateLocalizationSources",
+        ) as CrossUiGenerateLocalizationTask
+        generate.generateLocalizationSources()
+        verify.verifyLocalization()
+
+        assertTrue(
+            Files.exists(
+                directory.resolve("localization/apple/Localizable.xcstrings"),
+            ),
+        )
+        assertTrue(
+            Files.exists(
+                directory.resolve(
+                    "localization/android/values/crossui_strings.xml",
+                ),
+            ),
+        )
+        assertTrue(
+            Files.exists(
+                directory.resolve(
+                    "localization/windows/Strings/en-US/Resources.resw",
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun externalLocalizationOnlyValidatesKeys() {
+        val directory = createTempDirectory("crossui-plugin-external-localization")
+        val project = ProjectBuilder.builder().withProjectDir(directory.toFile()).build()
+        project.pluginManager.apply(CrossUiPlugin::class.java)
+        val input = directory.resolve("ui.json")
+        Files.writeString(input, localizedDocument().toJson())
+        val output = directory.resolve("localization")
+
+        val extension = project.extensions.getByType(CrossUiExtension::class.java)
+        extension.input.set(input.toFile())
+        extension.localization.mode.set(LocalizationMode.External)
+        extension.localization.outputDirectory.set(output.toFile())
+
+        val generate = project.tasks.getByName(
+            "generateLocalizationSources",
+        ) as CrossUiGenerateLocalizationTask
+        generate.generateLocalizationSources()
+        val verify = project.tasks.getByName(
+            "verifyLocalization",
+        ) as CrossUiVerifyLocalizationTask
+        verify.verifyLocalization()
+
+        assertFalse(Files.exists(output))
+    }
+
+    private fun localizedDocument() = UiDocument(
+        root = Node(
+            key = NodeKey("welcome"),
+            kind = NodeKind.Text("Welcome"),
+            localizedText = mapOf(
+                LocalizedField.Value to LocalizedText.Resource(
+                    key = "home.welcome",
+                    fallback = "Welcome",
+                ),
+            ),
+        ),
+    )
 }

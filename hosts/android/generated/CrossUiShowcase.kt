@@ -136,10 +136,10 @@ fun CrossUiShowcase(state: ShowcaseState, dispatch: (action: String, value: Stri
                     // crossui-node:settings
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         // crossui-node:settings-title
-                        Text("App Preferences", style = MaterialTheme.typography.titleLarge)
+                        Text(stringResource(R.string.settings_app_preferences), style = MaterialTheme.typography.titleLarge)
                         // crossui-node:dark-mode
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Dark Mode", modifier = Modifier.weight(1f))
+                            Text(stringResource(R.string.settings_dark_mode), modifier = Modifier.weight(1f))
                             Switch(checked = state.darkMode, onCheckedChange = { dispatch("dark_mode_changed", it.toString()) }, enabled = true)
                         }
                     }
@@ -149,8 +149,8 @@ fun CrossUiShowcase(state: ShowcaseState, dispatch: (action: String, value: Stri
         NavigationSuiteScaffold(
             modifier = Modifier.fillMaxSize(),
             navigationSuiteItems = {
-                item(selected = crossUiSelectedApp == "login", onClick = { dispatch("navigate", "login") }, icon = { Text("Sign in".take(1)) }, label = { Text("Sign in") })
-                item(selected = crossUiSelectedApp == "settings", onClick = { dispatch("navigate", "settings") }, icon = { Text("Settings".take(1)) }, label = { Text("Settings") })
+                item(selected = crossUiSelectedApp == "login", onClick = { dispatch("navigate", "login") }, icon = { Text(stringResource(R.string.route_sign_in).take(1)) }, label = { Text(stringResource(R.string.route_sign_in)) })
+                item(selected = crossUiSelectedApp == "settings", onClick = { dispatch("navigate", "settings") }, icon = { Text(stringResource(R.string.route_settings).take(1)) }, label = { Text(stringResource(R.string.route_settings)) })
             },
         ) {
             Box(

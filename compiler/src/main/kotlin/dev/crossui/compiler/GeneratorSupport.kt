@@ -106,7 +106,7 @@ internal fun Node.xamlText(
     fallback: String,
 ): String = when (val text = localizedText[field]) {
     is LocalizedText.Resource ->
-        "{x:Bind ${localizedPropertyName(field)}, Mode=OneTime}"
+        "{x:Bind ${localizedPropertyName(field)}, Mode=OneWay}"
     is LocalizedText.Literal -> text.value.xml()
     null -> fallback.xml()
 }
@@ -115,7 +115,7 @@ internal fun PickerOption.xamlText(node: Node): String {
     val text = localizedLabel
     return when (text) {
         is LocalizedText.Resource ->
-            "{x:Bind ${node.localizedOptionPropertyName(this)}, Mode=OneTime}"
+            "{x:Bind ${node.localizedOptionPropertyName(this)}, Mode=OneWay}"
         is LocalizedText.Literal -> text.value.xml()
         null -> label.xml()
     }

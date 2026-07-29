@@ -9,6 +9,7 @@ import dev.crossui.ir.walk
 import java.net.URLClassLoader
 import java.nio.file.Files
 import javax.inject.Inject
+import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -42,6 +43,12 @@ abstract class CrossUiExtension @Inject constructor(objects: ObjectFactory) {
     val androidResourceClass: Property<String> = objects.property(String::class.java)
     val localizationResolvers: MapProperty<String, String> =
         objects.mapProperty(String::class.java, String::class.java)
+    val localization: CrossUiLocalizationExtension =
+        objects.newInstance(CrossUiLocalizationExtension::class.java)
+
+    fun localization(action: Action<in CrossUiLocalizationExtension>) {
+        localization.configure(action)
+    }
 }
 
 @DisableCachingByDefault(because = "Base task has no outputs of its own.")
@@ -188,6 +195,11 @@ class CrossUiPlugin : Plugin<Project> {
         extension.typeName.convention("CrossUiGenerated")
         extension.androidResourceClass.convention("R")
         extension.localizationResolvers.convention(emptyMap())
+        extension.localization.mode.convention(LocalizationMode.External)
+        extension.localization.sourceLocale.convention("en-US")
+        extension.localization.outputDirectory.convention(
+            layout.projectDirectory.dir("localization"),
+        )
 
         val generate = tasks.register(
             "generateCrossUi",
@@ -219,9 +231,36 @@ class CrossUiPlugin : Plugin<Project> {
             task.targets.set(extension.targets)
             task.typeName.set(extension.typeName)
         }
+        val generateLocalization = tasks.register(
+            "generateLocalizationSources",
+            CrossUiGenerateLocalizationTask::class.java,
+        ) { task ->
+            task.group = "crossui"
+            task.description =
+                "Generates native source-language resources from CrossUI localization keys."
+            task.configureDocument(extension)
+            task.mode.set(extension.localization.mode)
+            task.sourceLocale.set(extension.localization.sourceLocale)
+            task.outputDirectory.set(extension.localization.outputDirectory)
+        }
+        val verifyLocalization = tasks.register(
+            "verifyLocalization",
+            CrossUiVerifyLocalizationTask::class.java,
+        ) { task ->
+            task.group = "verification"
+            task.description =
+                "Validates CrossUI keys and generated native localization resources."
+            task.configureDocument(extension)
+            task.mode.set(extension.localization.mode)
+            task.sourceLocale.set(extension.localization.sourceLocale)
+            task.outputDirectory.set(extension.localization.outputDirectory)
+        }
+        verify.configure { it.dependsOn(verifyLocalization) }
         verify.configure { it.dependsOn(generate) }
+        verifyLocalization.configure { it.mustRunAfter(generateLocalization) }
         tasks.matching { it.name == "assemble" }.configureEach { task ->
             task.dependsOn(generate)
+            task.dependsOn(generateLocalization)
         }
 
         pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
@@ -247,11 +286,18 @@ class CrossUiPlugin : Plugin<Project> {
             }
             val providerJars = tasks.matching { it.name == "jvmJar" }
             extension.providerClasspath.from(providerJars)
-            listOf(generate, doctor, verify).forEach { providerTask ->
+            listOf(
+                generate,
+                doctor,
+                verify,
+                generateLocalization,
+                verifyLocalization,
+            ).forEach { providerTask ->
                 providerTask.configure { it.dependsOn(providerJars) }
             }
             tasks.matching { it.name == "compileAndroidMain" }.configureEach {
                 it.dependsOn(generate)
+                it.dependsOn(generateLocalization)
             }
         }
 
@@ -261,7 +307,13 @@ class CrossUiPlugin : Plugin<Project> {
             }
             val providerJars = tasks.matching { it.name == "jar" }
             extension.providerClasspath.from(providerJars)
-            listOf(generate, doctor, verify).forEach { providerTask ->
+            listOf(
+                generate,
+                doctor,
+                verify,
+                generateLocalization,
+                verifyLocalization,
+            ).forEach { providerTask ->
                 providerTask.configure { it.dependsOn(providerJars) }
             }
         }

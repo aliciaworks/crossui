@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
-using Windows.Globalization;
+using Microsoft.Windows.Globalization;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
@@ -35,8 +35,16 @@ public sealed partial class MainWindow : Window
                 break;
             case "language_changed" when !string.IsNullOrWhiteSpace(value):
                 ApplicationLanguages.PrimaryLanguageOverride = value;
-                showcase.RefreshLocalization();
+                showcase.RefreshLocalization(value);
                 showcase.State.ApplyPickerStatus($"Language: {value}");
+                break;
+            case "dark_mode_changed" when bool.TryParse(value, out var darkMode):
+                var requestedTheme = darkMode
+                    ? ElementTheme.Dark
+                    : ElementTheme.Light;
+                Root.RequestedTheme = requestedTheme;
+                showcase.RequestedTheme = requestedTheme;
+                SystemBackdrop = new MicaBackdrop();
                 break;
             case "pick_attachment":
                 StartPicking("Select a PDF document", false, ".pdf");

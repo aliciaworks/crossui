@@ -190,18 +190,32 @@ internal object WinUiGenerator : CodeGenerator {
             "    public string ${property.propertyName} => $expression;"
         }.let { if (it.isEmpty()) "" else "$it\n" }
         val nativeLocalization = winUiNativeLocalization(localizedProperties, localization)
+        val localizationInterface = if (localizedProperties.isEmpty()) {
+            ""
+        } else {
+            ", INotifyPropertyChanged"
+        }
+        val localizationEvent = if (localizedProperties.isEmpty()) {
+            ""
+        } else {
+            "    public event PropertyChangedEventHandler? PropertyChanged;\n"
+        }
         val localizationRefresh = if (localizedProperties.isEmpty()) {
             ""
         } else {
-            val resetLoader = if (nativeLocalization.isEmpty()) {
+            val configureContext = if (nativeLocalization.isEmpty()) {
                 ""
             } else {
-                "        resourceLoader = new();\n"
+                "        ConfigureLocalization(languageTag);\n"
+            }
+            val notifications = localizedProperties.joinToString("\n") {
+                "        PropertyChanged?.Invoke(this, " +
+                    "new(nameof(${it.propertyName})));"
             }
             """
-            |    public void RefreshLocalization()
+            |    public void RefreshLocalization(string? languageTag = null)
             |    {
-            |$resetLoader        Bindings.Update();
+            |$configureContext$notifications
             |    }
             |
             |""".trimMargin()
@@ -274,10 +288,10 @@ internal object WinUiGenerator : CodeGenerator {
             |
             |namespace CrossUi.Generated;
             |
-            |public sealed partial class $typeName : UserControl
+            |public sealed partial class $typeName : UserControl$localizationInterface
             |{
             |    public Action<string, string?> Dispatch { get; }
-            |$stateProperty$localizedMembers$navigationFields
+            |$stateProperty$localizedMembers$localizationEvent$navigationFields
             |    public $typeName() : this((_, _) =>
             |        throw new InvalidOperationException(
             |            "$typeName requires an action dispatcher."

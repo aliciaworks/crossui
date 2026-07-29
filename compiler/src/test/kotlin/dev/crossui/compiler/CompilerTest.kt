@@ -402,9 +402,26 @@ class CompilerTest {
             ),
         )
         assertTrue(xaml.contains("LocalizedWelcomeValue"))
-        assertTrue(csharp.contains("ResourceLoader resourceLoader = new()"))
+        assertTrue(xaml.contains("LocalizedWelcomeValue, Mode=OneWay"))
+        assertTrue(csharp.contains("ResourceManager? resourceManager"))
+        assertTrue(csharp.contains("QualifierValues[\"Language\"] = languageTag"))
+        assertTrue(
+            csharp.contains(
+                "TryGetValue(key.Replace(\".\", \"/\"), resourceContext!)",
+            ),
+        )
         assertTrue(csharp.contains("Localize(\"home.welcome\", \"Welcome\")"))
-        assertTrue(csharp.contains("public void RefreshLocalization()"))
+        assertTrue(csharp.contains("UserControl, INotifyPropertyChanged"))
+        assertTrue(
+            csharp.contains(
+                "PropertyChanged?.Invoke(this, new(nameof(LocalizedWelcomeValue)))",
+            ),
+        )
+        assertTrue(
+            csharp.contains(
+                "public void RefreshLocalization(string? languageTag = null)",
+            ),
+        )
         assertTrue(csharp.contains("LocalizationError?.Invoke(exception)"))
     }
 
@@ -445,7 +462,7 @@ class CompilerTest {
             .single { it.relativePath == "SettingsView.xaml.cs" }
             .content
         assertTrue(csharp.contains("AppStrings.Resolve(\"settings.save\""))
-        assertTrue(!csharp.contains("ResourceLoader resourceLoader"))
+        assertTrue(!csharp.contains("ResourceManager? resourceManager"))
     }
 
     @Test

@@ -10,15 +10,20 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace CrossUi.Generated;
 
-public sealed partial class CrossUiShowcase : UserControl
+public sealed partial class CrossUiShowcase : UserControl, INotifyPropertyChanged
 {
     public Action<string, string?> Dispatch { get; }
     public CrossUiShowcaseState State { get; }
+    public string LocalizedLoginTitle => Localize("route.sign_in", "Sign in");
     public string LocalizedHeadingValue => Localize("showcase.welcome", "Welcome");
     public string LocalizedLanguageOptionEnUS => Localize("language.english", "English");
     public string LocalizedLanguageOptionZhCN => Localize("language.chinese", "中文");
     public string LocalizedLanguageOptionJaJP => Localize("language.japanese", "日本語");
     public string LocalizedAttachmentLabel => Localize("showcase.attach_document", "Attach document");
+    public string LocalizedSettingsTitle => Localize("route.settings", "Settings");
+    public string LocalizedSettingsTitleValue => Localize("settings.app_preferences", "App Preferences");
+    public string LocalizedDarkModeLabel => Localize("settings.dark_mode", "Dark Mode");
+    public event PropertyChangedEventHandler? PropertyChanged;
     private bool suppressNavigationSelection = true;
 
     public CrossUiShowcase() : this((_, _) =>
@@ -39,20 +44,47 @@ public sealed partial class CrossUiShowcase : UserControl
 
     }
 
-    public void RefreshLocalization()
+    public void RefreshLocalization(string? languageTag = null)
     {
-        resourceLoader = new();
-        Bindings.Update();
+        ConfigureLocalization(languageTag);
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedLoginTitle)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedHeadingValue)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedLanguageOptionEnUS)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedLanguageOptionZhCN)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedLanguageOptionJaJP)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedAttachmentLabel)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedSettingsTitle)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedSettingsTitleValue)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedDarkModeLabel)));
     }
 
-    private Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+    private Microsoft.Windows.ApplicationModel.Resources.ResourceManager? resourceManager;
+    private Microsoft.Windows.ApplicationModel.Resources.ResourceContext? resourceContext;
+    private Microsoft.Windows.ApplicationModel.Resources.ResourceMap? resourceMap;
     public Action<Exception>? LocalizationError { get; set; }
+
+    private void ConfigureLocalization(string? languageTag)
+    {
+        resourceManager ??= new();
+        resourceContext = resourceManager.CreateResourceContext();
+        if (!string.IsNullOrWhiteSpace(languageTag))
+        {
+            resourceContext.QualifierValues["Language"] = languageTag;
+        }
+        resourceMap ??= resourceManager.MainResourceMap.GetSubtree("Resources");
+    }
 
     private string Localize(string key, string fallback)
     {
         try
         {
-            var value = resourceLoader.GetString(key);
+            if (resourceContext is null)
+            {
+                ConfigureLocalization(null);
+            }
+            var value = resourceMap!
+                .TryGetValue(key.Replace(".", "/"), resourceContext!)
+                ?.ValueAsString;
             return string.IsNullOrEmpty(value) ? fallback : value;
         }
         catch (Exception exception)

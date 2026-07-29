@@ -1,0 +1,26 @@
+name: Verify localization resources
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Generate and verify native localization sources
+        run: >-
+          ./gradlew
+          :shared-ui:generateLocalizationSources
+          :shared-ui:verifyLocalization
+          --no-configuration-cache
+      - name: Reject stale checked-in localization resources
+        run: git diff --exit-code -- localization
+

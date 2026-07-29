@@ -10,13 +10,14 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace CrossUi.Generated;
 
-public sealed partial class CrossUiTypedFixture : UserControl
+public sealed partial class CrossUiTypedFixture : UserControl, INotifyPropertyChanged
 {
     public Action<string, string?> Dispatch { get; }
     public CrossUiTypedFixtureState State { get; }
     public string LocalizedFixtureTitle => Localize("fixture.title", "Typed binding fixture");
     public string LocalizedFixtureSubmitLabel => Localize("fixture.continue", "Continue");
     public string LocalizedFixtureDarkModeLabel => Localize("fixture.dark_mode", "Dark Mode");
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public CrossUiTypedFixture() : this((_, _) =>
         throw new InvalidOperationException(
@@ -33,20 +34,41 @@ public sealed partial class CrossUiTypedFixture : UserControl
 
     }
 
-    public void RefreshLocalization()
+    public void RefreshLocalization(string? languageTag = null)
     {
-        resourceLoader = new();
-        Bindings.Update();
+        ConfigureLocalization(languageTag);
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedFixtureTitle)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedFixtureSubmitLabel)));
+        PropertyChanged?.Invoke(this, new(nameof(LocalizedFixtureDarkModeLabel)));
     }
 
-    private Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+    private Microsoft.Windows.ApplicationModel.Resources.ResourceManager? resourceManager;
+    private Microsoft.Windows.ApplicationModel.Resources.ResourceContext? resourceContext;
+    private Microsoft.Windows.ApplicationModel.Resources.ResourceMap? resourceMap;
     public Action<Exception>? LocalizationError { get; set; }
+
+    private void ConfigureLocalization(string? languageTag)
+    {
+        resourceManager ??= new();
+        resourceContext = resourceManager.CreateResourceContext();
+        if (!string.IsNullOrWhiteSpace(languageTag))
+        {
+            resourceContext.QualifierValues["Language"] = languageTag;
+        }
+        resourceMap ??= resourceManager.MainResourceMap.GetSubtree("Resources");
+    }
 
     private string Localize(string key, string fallback)
     {
         try
         {
-            var value = resourceLoader.GetString(key);
+            if (resourceContext is null)
+            {
+                ConfigureLocalization(null);
+            }
+            var value = resourceMap!
+                .TryGetValue(key.Replace(".", "/"), resourceContext!)
+                ?.ValueAsString;
             return string.IsNullOrEmpty(value) ? fallback : value;
         }
         catch (Exception exception)

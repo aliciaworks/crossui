@@ -50,7 +50,7 @@ fun showcaseDocument(): UiDocument = typedDocument<ShowcaseState, ShowcaseAction
         active = bind(ShowcaseState::activeRoute),
         onChange = "navigate",
         routes = listOf(
-            route("login", "Sign in") {
+            route("login", localized("route.sign_in", "Sign in")) {
                 +vstack("login-content") {
                     +display(
                         "heading",
@@ -157,11 +157,14 @@ fun showcaseDocument(): UiDocument = typedDocument<ShowcaseState, ShowcaseAction
                     +footnote("legal", "By continuing you agree to our Terms")
                 }
             },
-            route("settings", "Settings") {
-                +title("settings-title", "App Preferences")
+            route("settings", localized("route.settings", "Settings")) {
+                +title(
+                    "settings-title",
+                    localized("settings.app_preferences", "App Preferences"),
+                )
                 +toggle(
                     "dark-mode",
-                    "Dark Mode",
+                    localized("settings.dark_mode", "Dark Mode"),
                     bind(ShowcaseState::darkMode),
                     "dark_mode_changed",
                 )

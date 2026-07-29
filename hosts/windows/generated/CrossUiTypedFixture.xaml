@@ -37,9 +37,9 @@
                         <!-- crossui-node:fixture-loading -->
                         <ProgressRing IsActive="True" Visibility="{x:Bind BooleanToVisibility(State.IsSubmitting), Mode=OneWay}" />
                         <!-- crossui-node:fixture-submit -->
-                        <Button Content="{x:Bind LocalizedFixtureSubmitLabel, Mode=OneTime}" Tag="submit" Click="OnAction" Style="{StaticResource AccentButtonStyle}" IsEnabled="{x:Bind State.CanSubmit, Mode=OneWay}" />
+                        <Button Content="{x:Bind LocalizedFixtureSubmitLabel, Mode=OneWay}" Tag="submit" Click="OnAction" Style="{StaticResource AccentButtonStyle}" IsEnabled="{x:Bind State.CanSubmit, Mode=OneWay}" />
                         <!-- crossui-node:fixture-dark-mode -->
-                        <ToggleSwitch Header="{x:Bind LocalizedFixtureDarkModeLabel, Mode=OneTime}" IsOn="{x:Bind State.DarkMode, Mode=TwoWay}" Tag="dark_mode_changed" />
+                        <ToggleSwitch Header="{x:Bind LocalizedFixtureDarkModeLabel, Mode=OneWay}" IsOn="{x:Bind State.DarkMode, Mode=TwoWay}" Tag="dark_mode_changed" />
                         <!-- crossui-node:fixture-appointment -->
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <CalendarDatePicker Date="{x:Bind State.AppointmentDate, Mode=TwoWay}" />

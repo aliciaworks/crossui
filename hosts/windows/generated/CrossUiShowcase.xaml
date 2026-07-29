@@ -12,14 +12,14 @@
         SelectionChanged="OnCrossUiNavigationAppSelectionChanged">
         <NavigationView.MenuItems>
             <NavigationViewItem
-                Content="Sign in"
+                Content="{x:Bind LocalizedLoginTitle, Mode=OneWay}"
                 Tag="login">
                 <NavigationViewItem.Icon>
                     <FontIcon FontFamily="Segoe UI" Glyph="S" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
             <NavigationViewItem
-                Content="Settings"
+                Content="{x:Bind LocalizedSettingsTitle, Mode=OneWay}"
                 Tag="settings">
                 <NavigationViewItem.Icon>
                     <FontIcon FontFamily="Segoe UI" Glyph="S" />
@@ -56,7 +56,7 @@
                             <!-- crossui-node:login-content -->
                             <StackPanel Orientation="Vertical" Spacing="16">
                                 <!-- crossui-node:heading -->
-                                <TextBlock Text="{x:Bind LocalizedHeadingValue, Mode=OneTime}" Style="{ThemeResource DisplayTextBlockStyle}" TextWrapping="Wrap" />
+                                <TextBlock Text="{x:Bind LocalizedHeadingValue, Mode=OneWay}" Style="{ThemeResource DisplayTextBlockStyle}" TextWrapping="Wrap" />
                                 <!-- crossui-node:logo -->
                                 <Image Source="https://example.com/logo.png" AutomationProperties.Name="App logo" />
                                 <!-- crossui-node:email -->
@@ -86,9 +86,9 @@
                                 <Border Height="1" Background="{ThemeResource SystemControlForegroundBaseLowBrush}" />
                                 <!-- crossui-node:language -->
                                 <ComboBox SelectedValue="{x:Bind State.Language, Mode=TwoWay}" SelectedValuePath="Tag" Tag="language_changed">
-                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionEnUS, Mode=OneTime}" Tag="en-US" />
-                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionZhCN, Mode=OneTime}" Tag="zh-CN" />
-                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionJaJP, Mode=OneTime}" Tag="ja-JP" />
+                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionEnUS, Mode=OneWay}" Tag="en-US" />
+                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionZhCN, Mode=OneWay}" Tag="zh-CN" />
+                                    <ComboBoxItem Content="{x:Bind LocalizedLanguageOptionJaJP, Mode=OneWay}" Tag="ja-JP" />
                                 </ComboBox>
                                 <!-- crossui-node:actions -->
                                 <StackPanel Orientation="Horizontal" Spacing="16">
@@ -98,7 +98,7 @@
                                     <Button Content="Delete" Tag="show_delete" Click="OnAction" AutomationProperties.Name="Delete account" />
                                 </StackPanel>
                                 <!-- crossui-node:attachment -->
-                                <Button Content="{x:Bind LocalizedAttachmentLabel, Mode=OneTime}" Tag="pick_attachment" Click="OnAction" Style="{StaticResource AccentButtonStyle}" />
+                                <Button Content="{x:Bind LocalizedAttachmentLabel, Mode=OneWay}" Tag="pick_attachment" Click="OnAction" Style="{StaticResource AccentButtonStyle}" />
                                 <!-- crossui-node:photos -->
                                 <Button Content="Choose photos" Tag="pick_photos" Click="OnAction" Style="{StaticResource AccentButtonStyle}" />
                                 <!-- crossui-node:picker-status -->
@@ -117,9 +117,9 @@
                         <!-- crossui-node:settings -->
                         <StackPanel Spacing="16">
                             <!-- crossui-node:settings-title -->
-                            <TextBlock Text="App Preferences" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" AutomationProperties.Name="App Preferences" />
+                            <TextBlock Text="{x:Bind LocalizedSettingsTitleValue, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" AutomationProperties.Name="App Preferences" />
                             <!-- crossui-node:dark-mode -->
-                            <ToggleSwitch Header="Dark Mode" IsOn="{x:Bind State.DarkMode, Mode=TwoWay}" Tag="dark_mode_changed" />
+                            <ToggleSwitch Header="{x:Bind LocalizedDarkModeLabel, Mode=OneWay}" IsOn="{x:Bind State.DarkMode, Mode=TwoWay}" Tag="dark_mode_changed" />
                         </StackPanel>
                     </Grid>
                     </Grid>

@@ -9,14 +9,33 @@ internal fun winUiNativeLocalization(
     properties.any { localization.render(ExportTarget.WinUi3, it.text) == null }
 ) {
     """
-    |    private Microsoft.Windows.ApplicationModel.Resources.ResourceLoader resourceLoader = new();
+    |    private Microsoft.Windows.ApplicationModel.Resources.ResourceManager? resourceManager;
+    |    private Microsoft.Windows.ApplicationModel.Resources.ResourceContext? resourceContext;
+    |    private Microsoft.Windows.ApplicationModel.Resources.ResourceMap? resourceMap;
     |    public Action<Exception>? LocalizationError { get; set; }
+    |
+    |    private void ConfigureLocalization(string? languageTag)
+    |    {
+    |        resourceManager ??= new();
+    |        resourceContext = resourceManager.CreateResourceContext();
+    |        if (!string.IsNullOrWhiteSpace(languageTag))
+    |        {
+    |            resourceContext.QualifierValues["Language"] = languageTag;
+    |        }
+    |        resourceMap ??= resourceManager.MainResourceMap.GetSubtree("Resources");
+    |    }
     |
     |    private string Localize(string key, string fallback)
     |    {
     |        try
     |        {
-    |            var value = resourceLoader.GetString(key);
+    |            if (resourceContext is null)
+    |            {
+    |                ConfigureLocalization(null);
+    |            }
+    |            var value = resourceMap!
+    |                .TryGetValue(key.Replace(".", "/"), resourceContext!)
+    |                ?.ValueAsString;
     |            return string.IsNullOrEmpty(value) ? fallback : value;
     |        }
     |        catch (Exception exception)

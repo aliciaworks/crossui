@@ -15,4 +15,16 @@
   <data name="language.japanese" xml:space="preserve">
     <value>Japanese</value>
   </data>
+  <data name="route.sign_in" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="route.settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="settings.app_preferences" xml:space="preserve">
+    <value>App Preferences</value>
+  </data>
+  <data name="settings.dark_mode" xml:space="preserve">
+    <value>Dark Mode</value>
+  </data>
 </root>

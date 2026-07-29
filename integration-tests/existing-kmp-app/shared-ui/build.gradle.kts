@@ -36,4 +36,10 @@ crossui {
     providerClass.set("dev.crossui.integration.login.LoginUiProvider")
     typeName.set("LoginScreen")
     targets.set(listOf("compose"))
+    localization {
+        mode.set(dev.crossui.gradle.LocalizationMode.Generated)
+        outputDirectory.set(
+            layout.buildDirectory.dir("generated/crossui-localization"),
+        )
+    }
 }

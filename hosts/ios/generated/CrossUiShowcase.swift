@@ -77,20 +77,20 @@ struct CrossUiShowcase: View {
                 .frame(maxWidth: .infinity, alignment: .top)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
-            }.navigationTitle("Sign in").tabItem { Text("Sign in") }.tag("login")
+            }.navigationTitle(String(localized: "route.sign_in", defaultValue: "Sign in")).tabItem { Text(String(localized: "route.sign_in", defaultValue: "Sign in")) }.tag("login")
             // crossui-node:settings
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // crossui-node:settings-title
-                    Text("App Preferences").font(.title)
+                    Text(String(localized: "settings.app_preferences", defaultValue: "App Preferences")).font(.title)
                     // crossui-node:dark-mode
-                    Toggle("Dark Mode", isOn: Binding(get: { state.darkMode }, set: { dispatch("dark_mode_changed", String(describing: $0)) }))
+                    Toggle(String(localized: "settings.dark_mode", defaultValue: "Dark Mode"), isOn: Binding(get: { state.darkMode }, set: { dispatch("dark_mode_changed", String(describing: $0)) }))
                 }
                 .frame(maxWidth: 840, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .top)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
-            }.navigationTitle("Settings").tabItem { Text("Settings") }.tag("settings")
+            }.navigationTitle(String(localized: "route.settings", defaultValue: "Settings")).tabItem { Text(String(localized: "route.settings", defaultValue: "Settings")) }.tag("settings")
         }.tabViewStyle(.sidebarAdaptable)
     }
 }
