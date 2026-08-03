@@ -1,4 +1,9 @@
-// Handwritten compile-only types that mirror the KMP Swift export boundary.
+// Handwritten compile-only types that mirror what Kotlin Swift Export generates
+// for the KMP state/action boundary: States are Sendable value types and Actions
+// are Sendable enums with associated values. In a real Apple host these types come
+// from the Swift-exported framework (see swiftExport in the runtime and feature
+// build scripts). This file lets the checked-in generated SwiftUI compile and be
+// checked for strict concurrency without linking that framework on a non-macOS host.
 
 struct ShowcaseState: Sendable {
     var activeRoute = "login"
@@ -15,7 +20,11 @@ struct ShowcaseState: Sendable {
 }
 
 enum ShowcaseAction: Sendable {
-    case fixture
+    case navigate(route: String)
+    case volumeChanged(value: Double)
+    case languageChanged(value: String)
+    case pickAttachment
+    case pickPhotos
 }
 
 struct WinUiFixtureState: Sendable {
@@ -28,5 +37,7 @@ struct WinUiFixtureState: Sendable {
 }
 
 enum WinUiFixtureAction: Sendable {
-    case fixture
+    case emailChanged(value: String)
+    case darkModeChanged(value: Bool)
+    case submit
 }
