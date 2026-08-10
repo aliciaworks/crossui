@@ -25,8 +25,8 @@ struct CrossUiTypedFixture: View {
                         Text(state.status).font(.body)
                         // crossui-node:fixture-loading
                         if state.isSubmitting {
-                            ProgressView("Signing in")
-                        }
+                            ProgressView("Signing in").transition(.opacity.combined(with: .scale))
+                        }.animation(.spring(duration: 0.35, bounce: 0.25), value: state.isSubmitting)
                         // crossui-node:fixture-submit
                         Button(String(localized: "fixture.continue", defaultValue: "Continue")) { dispatch("submit", nil) }.buttonStyle(.borderedProminent).disabled(!state.canSubmit)
                         // crossui-node:fixture-dark-mode

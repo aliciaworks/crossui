@@ -3,9 +3,24 @@ package dev.crossui.compiler
 import dev.crossui.ir.Alignment
 import dev.crossui.ir.Axis
 import dev.crossui.ir.LocalizedField
+import dev.crossui.ir.MotionPreset
 import dev.crossui.ir.Node
 import dev.crossui.ir.NodeKind
 import dev.crossui.ir.TextStyle
+
+internal fun MotionPreset.composeEnter(): String = when (this) {
+    MotionPreset.Default, MotionPreset.Fade -> "fadeIn()"
+    MotionPreset.Scale -> "scaleIn()"
+    MotionPreset.SlideUp -> "slideInVertically()"
+    MotionPreset.Blend -> "fadeIn() + scaleIn()"
+}
+
+internal fun MotionPreset.composeExit(): String = when (this) {
+    MotionPreset.Default, MotionPreset.Fade -> "fadeOut()"
+    MotionPreset.Scale -> "scaleOut()"
+    MotionPreset.SlideUp -> "slideOutVertically()"
+    MotionPreset.Blend -> "fadeOut() + scaleOut()"
+}
 
 internal fun composeNavigation(
     node: Node,

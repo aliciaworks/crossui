@@ -77,6 +77,20 @@ internal object ComposeGenerator : CodeGenerator {
         } else {
             ""
         }
+        val motion = document.document.root.anyNode { "visible" in it.bindings }
+        val motionImports = if (motion) {
+            """
+            |import androidx.compose.animation.AnimatedVisibility
+            |import androidx.compose.animation.fadeIn
+            |import androidx.compose.animation.fadeOut
+            |import androidx.compose.animation.scaleIn
+            |import androidx.compose.animation.scaleOut
+            |import androidx.compose.animation.slideInVertically
+            |import androidx.compose.animation.slideOutVertically
+            |""".trimMargin() + "\n"
+        } else {
+            ""
+        }
         val additionalImports = listOf(
             imageImport,
             runtimeImports,
@@ -84,6 +98,7 @@ internal object ComposeGenerator : CodeGenerator {
             actionImport,
             temporalImports,
             dynamicColorImports,
+            motionImports,
         ).flatMap {
             it.lineSequence().filter(String::isNotBlank).toList()
         }
@@ -247,7 +262,7 @@ internal object ComposeGenerator : CodeGenerator {
         val rendered = if (visible == null) {
             generated
         } else {
-            "$i${"if (state.${visible.path}) {"}\n${generated.prependIndent("    ")}\n$i}"
+            "$i${"AnimatedVisibility(visible = state.${visible.path}, enter = ${node.transition.composeEnter()}, exit = ${node.transition.composeExit()}) {"}\n${generated.prependIndent("    ")}\n$i}"
         }
         return marker + rendered
     }

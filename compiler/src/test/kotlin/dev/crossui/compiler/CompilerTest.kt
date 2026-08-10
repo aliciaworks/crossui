@@ -268,7 +268,11 @@ class CompilerTest {
         ).single().content
 
         assertTrue(generated.contains("Text(state.status, style ="))
-        assertTrue(generated.contains("if (state.loading)"))
+        assertTrue(
+            generated.contains(
+                "AnimatedVisibility(visible = state.loading, enter = fadeIn(), exit = fadeOut())",
+            ),
+        )
         assertTrue(generated.contains("enabled = state.canSubmit"))
     }
 

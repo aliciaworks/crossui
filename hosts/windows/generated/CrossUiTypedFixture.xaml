@@ -35,7 +35,14 @@
                         <!-- crossui-node:fixture-status -->
                         <TextBlock Text="{x:Bind State.Status, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap" />
                         <!-- crossui-node:fixture-loading -->
-                        <ProgressRing IsActive="True" Visibility="{x:Bind BooleanToVisibility(State.IsSubmitting), Mode=OneWay}" />
+                        <Border Visibility="{x:Bind BooleanToVisibility(State.IsSubmitting), Mode=OneWay}">
+                            <Border.Transitions>
+                                <TransitionCollection>
+                                    <PopupThemeTransition />
+                                </TransitionCollection>
+                            </Border.Transitions>
+                            <ProgressRing IsActive="True" />
+                        </Border>
                         <!-- crossui-node:fixture-submit -->
                         <Button Content="{x:Bind LocalizedFixtureSubmitLabel, Mode=OneWay}" Tag="submit" Click="OnAction" Style="{StaticResource AccentButtonStyle}" IsEnabled="{x:Bind State.CanSubmit, Mode=OneWay}" />
                         <!-- crossui-node:fixture-dark-mode -->

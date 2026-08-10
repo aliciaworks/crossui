@@ -200,6 +200,7 @@ private fun winUiFixtureDocument(): UiDocument =
                 +text("fixture-status", bind(WinUiFixtureState::status))
                 +loading("fixture-loading", "Signing in")
                     .visibleWhen(bind(WinUiFixtureState::isSubmitting))
+                    .appear(MotionPreset.Blend)
                 +button(
                     "fixture-submit",
                     localized("fixture.continue", "Continue"),

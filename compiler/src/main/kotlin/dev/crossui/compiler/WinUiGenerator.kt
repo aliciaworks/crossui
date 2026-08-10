@@ -57,9 +57,11 @@ internal object WinUiGenerator : CodeGenerator {
         val enabled = node.bindings["enabled"]?.let {
             " IsEnabled=\"{x:Bind State.${it.path.replaceFirstChar(Char::uppercaseChar)}, Mode=OneWay}\""
         } ?: if (node.semantics.enabled) "" else " IsEnabled=\"False\""
-        val visible = node.bindings["visible"]?.let {
+        val visibleBinding = node.bindings["visible"]
+        val outerVisibility = visibleBinding?.let {
             " Visibility=\"{x:Bind BooleanToVisibility(State.${it.path.replaceFirstChar(Char::uppercaseChar)}), Mode=OneWay}\""
         }.orEmpty()
+        val visible = if (visibleBinding == null) outerVisibility else ""
         val automation = node.semantics.label?.let {
             " AutomationProperties.Name=\"${it.xml()}\""
         }.orEmpty()
@@ -125,7 +127,22 @@ internal object WinUiGenerator : CodeGenerator {
             is NodeKind.ContentPicker ->
                 "$i<Button Content=\"${node.xamlText(LocalizedField.Label, kind.label)}\" Tag=\"${kind.onRequest.xml()}\" Click=\"OnAction\"${kind.variant.winUiButtonStyle()}$visible$enabled$automation />"
         }
-        return marker + generated
+        val rendered = if (visibleBinding == null) {
+            generated
+        } else {
+            val property = visibleBinding.path.replaceFirstChar(Char::uppercaseChar)
+            """
+            |$i<Border$outerVisibility>
+            |$i    <Border.Transitions>
+            |$i        <TransitionCollection>
+            |$i            <${node.transition.winUiTransition()} />
+            |$i        </TransitionCollection>
+            |$i    </Border.Transitions>
+            |${generated.prependIndent("    ")}
+            |$i</Border>
+            |""".trimMargin().trimEnd()
+        }
+        return marker + rendered
     }
 
     private fun datePicker(

@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
-const val IR_VERSION: UInt = 5u
+const val IR_VERSION: UInt = 6u
 
 fun interface UiDocumentProvider {
     fun document(): UiDocument
@@ -181,6 +181,7 @@ data class Node(
     val bindings: Map<String, BindingRef> = emptyMap(),
     val localizedText: Map<LocalizedField, LocalizedText> = emptyMap(),
     val source: SourceLocation? = null,
+    val transition: MotionPreset = MotionPreset.Default,
 ) {
     fun withChildren(vararg nodes: Node) = copy(children = nodes.toList())
     fun withChildren(nodes: List<Node>) = copy(children = nodes)
@@ -397,6 +398,20 @@ data class PickerOption(
 @Serializable enum class Axis { Horizontal, Vertical }
 @Serializable enum class Alignment { Start, Center, End, Stretch }
 @Serializable enum class Platform { Ios, Android, Windows }
+
+/**
+ * Semantic appearance motion for a node that appears and disappears (typically
+ * through a `visibleWhen` binding). Generators lower each preset to the native
+ * motion idiom of the target platform; [Default] is the platform-standard fade.
+ */
+@Serializable
+enum class MotionPreset {
+    Default,
+    Fade,
+    Scale,
+    SlideUp,
+    Blend,
+}
 
 @Serializable
 data class Semantics(

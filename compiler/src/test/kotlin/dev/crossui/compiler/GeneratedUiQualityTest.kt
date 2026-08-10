@@ -127,4 +127,55 @@ class GeneratedUiQualityTest {
         assertTrue(csharp.contains("State.ActiveRoute = route"))
         assertTrue(csharp.contains("State.PropertyChanged += OnNavigationStateChanged"))
     }
+
+    @Test
+    fun visibleWhenProducesNativeAnimatedPresence() {
+        val source = typedDocument<MotionState, MotionAction>(
+            vstack("content") {
+                +loading("spinner", "Working")
+                    .visibleWhen(bind(MotionState::busy))
+                    .appear(MotionPreset.Blend)
+                +text("notice", "Done")
+                    .visibleWhen(bind(MotionState::done))
+            },
+        )
+
+        val generated = CrossUiCompiler.generate(source, typeName = "MotionView")
+        val compose = generated.single {
+            it.target == ExportTarget.JetpackCompose
+        }.content
+        val swift = generated.single {
+            it.target == ExportTarget.SwiftUi
+        }.content
+        val xaml = generated.single {
+            it.relativePath == "MotionView.xaml"
+        }.content
+
+        // SwiftUI: transition + value-driven spring animation.
+        assertTrue(swift.contains("if state.busy {"))
+        assertTrue(swift.contains(".transition(.opacity.combined(with: .scale))"))
+        assertTrue(
+            swift.contains(
+                ".animation(.spring(duration: 0.35, bounce: 0.25), value: state.busy)",
+            ),
+        )
+        // Compose: Material-style AnimatedVisibility with fade-through enter/exit.
+        assertTrue(compose.contains("import androidx.compose.animation.AnimatedVisibility"))
+        assertTrue(
+            compose.contains(
+                "AnimatedVisibility(visible = state.busy, " +
+                    "enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut())",
+            ),
+        )
+        assertTrue(compose.contains("AnimatedVisibility(visible = state.done"))
+        // WinUI: theme transition on a visibility-driven Border.
+        assertTrue(xaml.contains("<Border.Transitions>"))
+        assertTrue(xaml.contains("<TransitionCollection>"))
+        assertTrue(xaml.contains("<PopupThemeTransition />"))
+        assertTrue(xaml.contains("BooleanToVisibility(State.Busy)"))
+        assertTrue(xaml.contains("BooleanToVisibility(State.Done)"))
+    }
+
+    private data class MotionState(val busy: Boolean = false, val done: Boolean = false)
+    private sealed interface MotionAction
 }

@@ -4,8 +4,16 @@ import dev.crossui.ir.Alignment
 import dev.crossui.ir.Axis
 import dev.crossui.ir.ButtonVariant
 import dev.crossui.ir.InputType
+import dev.crossui.ir.MotionPreset
 import dev.crossui.ir.Node
 import dev.crossui.ir.NodeKind
+
+internal fun MotionPreset.swiftTransition(): String = when (this) {
+    MotionPreset.Default, MotionPreset.Fade -> ".transition(.opacity)"
+    MotionPreset.Scale -> ".transition(.scale)"
+    MotionPreset.SlideUp -> ".transition(.move(edge: .bottom))"
+    MotionPreset.Blend -> ".transition(.opacity.combined(with: .scale))"
+}
 
 internal val platformKeyboards = setOf(
     InputType.Email,

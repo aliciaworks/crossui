@@ -2,11 +2,18 @@ package dev.crossui.compiler
 
 import dev.crossui.ir.LocalizedField
 import dev.crossui.ir.ButtonVariant
+import dev.crossui.ir.MotionPreset
 import dev.crossui.ir.NavigationMode
 import dev.crossui.ir.Node
 import dev.crossui.ir.NodeKind
 import dev.crossui.ir.TextStyle
 import dev.crossui.ir.walk
+
+internal fun MotionPreset.winUiTransition(): String = when (this) {
+    MotionPreset.Default, MotionPreset.Fade -> "ContentThemeTransition"
+    MotionPreset.Scale, MotionPreset.Blend -> "PopupThemeTransition"
+    MotionPreset.SlideUp -> "EntranceThemeTransition"
+}
 
 internal data class WinUiNavigation(
     val name: String,

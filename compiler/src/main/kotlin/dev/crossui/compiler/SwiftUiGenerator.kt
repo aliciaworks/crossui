@@ -307,7 +307,9 @@ internal object SwiftUiGenerator : CodeGenerator {
         val rendered = if (visible == null) {
             generated
         } else {
-            "$i${"if state.${visible.path} {"}\n${generated.prependIndent("    ")}\n$i}"
+            "$i${"if state.${visible.path} {"}\n" +
+                generated.prependIndent("    ") + node.transition.swiftTransition() +
+                "\n$i}.animation(.spring(duration: 0.35, bounce: 0.25), value: state.${visible.path})"
         }
         return marker + rendered
     }

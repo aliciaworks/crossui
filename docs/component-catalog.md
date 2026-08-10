@@ -28,6 +28,7 @@ component.
 | Card | ✅ v2.2 | native — `VStack` + `.regularMaterial` | native — `ElevatedCard` | native — `Border` w/ card brush |
 | Chip | ✅ v2.2 | adapted — `Capsule` + optional ✕ | native — `InputChip`/`SuggestionChip` | adapted — `Border` + optional `SymbolIcon` |
 | File/Media picker | ✅ v2.3 | semantic button → host `fileImporter`/`PhotosPicker` effect | semantic button → host Activity Result effect | semantic button → host picker effect |
+| Motion (presence) | ✅ v2.4 | native — `.transition` + spring `.animation(value:)` | native — `AnimatedVisibility` enter/exit | native — `Border` + `ThemeTransition` |
 | PlatformView | ✅ | compile-time error without escape hatch | compile-time error without escape hatch | compile-time error without escape hatch |
 
 `PlatformView` is intentionally outside the portable component set. Use a

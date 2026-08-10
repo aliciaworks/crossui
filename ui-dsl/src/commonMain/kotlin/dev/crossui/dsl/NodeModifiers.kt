@@ -20,6 +20,14 @@ fun Node.visibleWhen(binding: StateBinding<Boolean>) =
 fun Node.enabledWhen(binding: StateBinding<Boolean>) =
     withBinding("enabled", binding)
 
+/**
+ * Sets the semantic appearance motion for this node. Generators animate the
+ * node's presence (enter/exit) using the native motion idiom of each platform
+ * when the node is shown or hidden through [visibleWhen]. The default preset is
+ * the platform-standard fade.
+ */
+fun Node.appear(preset: MotionPreset) = copy(transition = preset)
+
 internal fun <T> Node.withBinding(field: String, binding: StateBinding<T>) =
     copy(bindings = bindings + (field to binding.reference))
 

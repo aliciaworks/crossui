@@ -518,17 +518,17 @@
         {
             "nodeKey": "fixture-submit",
             "generatedFile": "windows/generated/CrossUiTypedFixture.xaml",
-            "generatedLine": 39
+            "generatedLine": 46
         },
         {
             "nodeKey": "fixture-dark-mode",
             "generatedFile": "windows/generated/CrossUiTypedFixture.xaml",
-            "generatedLine": 41
+            "generatedLine": 48
         },
         {
             "nodeKey": "fixture-appointment",
             "generatedFile": "windows/generated/CrossUiTypedFixture.xaml",
-            "generatedLine": 43
+            "generatedLine": 50
         }
     ]
 }
